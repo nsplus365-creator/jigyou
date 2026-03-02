@@ -118,6 +118,14 @@ textarea.form-control{resize:vertical;min-height:80px;}
 .profit-calc-row{display:flex;justify-content:space-between;padding:3px 0;color:var(--text2);}
 .profit-calc-row.total{border-top:1px solid var(--border);margin-top:6px;padding-top:8px;font-weight:700;color:var(--text);}
 select.form-control option{background:var(--surface2);color:var(--text);}
+.balance-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:16px;}
+.balance-flow{display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap;}
+.balance-item{text-align:center;flex:1;min-width:70px;}
+.balance-item-label{font-size:10px;color:var(--text2);margin-bottom:3px;}
+.balance-item-value{font-size:15px;font-weight:700;}
+.balance-arrow{color:var(--text2);font-size:20px;flex-shrink:0;}
+.balance-total{margin-top:12px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.fc-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
 </style>
 </head>
 <body>
@@ -178,7 +186,7 @@ select.form-control option{background:var(--surface2);color:var(--text);}
     <div id="furugiya-sold" style="display:none">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>日付</th><th>管理番号</th><th>商品名</th><th>売値</th><th>送料</th><th>手数料</th><th>利益</th><th>利益率</th></tr></thead>
+          <thead><tr><th>日付</th><th>管理番号</th><th>商品名</th><th>売値</th><th>送料</th><th>手数料</th><th>利益</th><th>利益率</th><th></th></tr></thead>
           <tbody id="sold-tbody"></tbody>
         </table>
       </div>
@@ -214,15 +222,21 @@ select.form-control option{background:var(--surface2);color:var(--text);}
       <span id="cal-month-label" style="font-weight:700;min-width:100px;text-align:center;"></span>
       <button class="cal-nav" onclick="changeCalMonth(1)">›</button>
     </div>
+    <!-- 繰り越し残高カード -->
+    <div class="balance-card" id="balance-card"></div>
     <div class="stats-grid" id="cal-stats"></div>
     <div class="calendar">
       <div class="cal-grid" id="cal-day-labels"></div>
       <div class="cal-grid" id="cal-grid"></div>
     </div>
     <div class="card">
-      <div class="card-title" style="justify-content:space-between;display:flex;align-items:center;">
+      <div class="card-title" style="justify-content:space-between;display:flex;align-items:center;flex-wrap:wrap;gap:6px;">
         <span>📋 収支一覧</span>
-        <button class="btn btn-primary btn-sm" onclick="openModal('modal-shuushi')">＋ 追加</button>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="btn btn-secondary btn-sm" onclick="openModal('modal-fixed')">🔄 固定費</button>
+          <button class="btn btn-secondary btn-sm" onclick="applyFixedCosts()">固定費 適用</button>
+          <button class="btn btn-primary btn-sm" onclick="openModal('modal-shuushi')">＋ 追加</button>
+        </div>
       </div>
       <div class="table-wrap">
         <table>
@@ -235,48 +249,59 @@ select.form-control option{background:var(--surface2);color:var(--text);}
 
 </div><!-- /content -->
 
-<!-- ===== MODAL: 仕入れ登録 ===== -->
-<div class="modal-overlay" id="modal-shiire">
+<!-- �������DâK�^XZ^8(�y����"��������У�F�b6�73�&��F���fW&��"�C�&��F��6���&R#�Т�F�b6�73�&��F�#�Т�F�b6�73�&��F�ֆVFW"#�Т�7�6�73�&��F��F�F�R#�	�:bK�^XZ^8(�y����#��7��Т�'WGF��6�73�&��F��6��6R"��6Ɩ6��&6��6T��Fv��F��6���&Rr�#�)�S��'WGF���Т��F�c�Т�F�b6�73�&f�&��w&�W#�Т��&V�6�73�&f�&���&V�#�z�ynyZ�X�~�Ȏ�z�X�^�ȓ���&V��ТƖ�WBG�S�'FW�B"6�73�&f�&��6��G&��"�C�'2֖B"&VF��ǒ7G��S�&�6�G���S�#�Т��F�c�Т�F�b6�73�&f�&��&�r#�Т�F�b6�73�&f�&��w&�W#�Т��&V�6�73�&f�&���&V�#�YXnY8Y�����&V��ТƖ�WBG�S�'FW�B"6�73�&f�&��6��G&��"�C�'2���R"�6V���FW#�.K賢88~88�8:8+�8:>8+88>88�#�Т��F�c�Т�F�b6�73�&f�&��w&�W#�Т��&V�6�73�&f�&���&V�#�89n8:�8;>88����&V��ТƖ�WBG�S�'FW�B"6�73�&f�&��6��G&��"�C�'2�'&�B"�6V���FW#�.K賢�Wf�w2#�Т��F�c�Т��F�c�Т�F�b6�73�&f�&��&�r#�Т�F�b6�73�&f�&��w&�W#�Т��&V�6�73�&f�&���&V�#�K�^XZ^8(�K�j�����&V��ТƖ�WBG�S�&�V�&W""6�73�&f�&��6��G&��"�C�'2�&�6R"�6V���FW#�##�Т��F�c�Т�F�b6�73�&f�&��w&�W#�Т��&V�6�73�&f�&���&V�#�K�^XZ^8(�izR����&V��ТƖ�WBG�S�&FFR"6�73�&f�&��6��G&��"�C�'2�FFR#�Т��F�c�Т��F�c�Т�F�b6�73�&f�&��&�r#�Т�F�b6�73�&f�&��w&�W#�Т��&V�6�73�&f�&���&V�#�8*�88n8+N8:����&V��Т�6V�V7B6�73�&f�&��6��G&��"�C�'2�6FVv�'�#�Т��F����88�88>89~8+����F������F����89�88�8:8+����F������F����8*.8*n8+�8;����F����Т��F����8+~8:^8;�8+����F������F����8988>8+���F������F����8*.8*�8+�8+^8:�8;����F������F����8�8�K�c���F����Т��6V�V7C�Т��F�c�Т�F�b6�73�&f�&��w&�W#�Т��&V�6�73�&f�&���&V�#�x�nhX����&V��Т�6V�V7B6�73�&f�&��6��G&��"�C�'2�6��F�F���#�Т��F����ikY88;�iʮK��yJ����F������F����iʮK��yJ�8���8C���F������F����y��z��8>8�X+~8�8s���F����Т��F����8(N8(NX+~8;�k�8(�8.8(����F������F����X+~8;�k�8(�8.8(����F������F����XZ�K�>y�N8�X+~8.8(����F����Т��6V�V7C�Т��F�c�Т��F�c�Т�F�b6�73�&f�&��w&�W#�Т��&V�6�73�&f�&���&V�#�y��Z螋*�Z;.K�j����&V��ТƖ�WBG�S�&�V�&W""6�73�&f�&��6��G&��"�C�'2�F&vWB�&�6R"�6V���FW#�##�Т��F�c�Т�F�b6�73�&f�&��w&�W#�Т��&V�6�73�&f�&���&V�#�8:8:#���&V��Т�FW�F&V6�73�&f�&��6��G&��"�C�'2��V��"�6V���FW#�.x��[�N8;�x�nhX���>{K8�8�#���FW�F&V�Т��F�c�Т�F�b6�73�&f�&��f��FW"#�Т�'WGF��6�73�&'F�'F��6V6��F'�"��6Ɩ6��&6��6T��Fv��F��6���&Rr�#�8*�8:>8;>8+�8:���'WGF���Т�'WGF��6�73�&'F�'F��&��'�"��6Ɩ6��'6fU6���&R��#�y����#��'WGF���Т��F�c�Т��F�c�У��F�c�РУ����������Dâ�*�Z;.y����"��������У�F�b6�73�&��F���fW&��"�C�&��F�ֆ�&�#�Т�F�b6�73�&��F�#�Т�F�b6�73�&��F�ֆVFW"#�Т�7�6�73�&��F��F�F�R#�	�+B�*�Z;.y����#��7��Т�'WGF��6�73�&��F��6��6R"��6Ɩ6��&6��6T��Fv��F�ֆ�&�r�#�)�S��'WGF���Т��F�c�Т�F�b6�73�&f�&��w&�W#�Т��&V�6�73�&f�&���&V�#�YXnY8��h������&V��Т�6V�V7B6�73�&f�&��6��G&��"�C�&�֗FV�"��6��vS�'WFFT��&�6�2��#�Т��F���f�VS�"#�Yʎ[��8�8(���h�����F����Т��6V�V7C�Т��F�c�Т�F�b6�73�&f�&��&�r#�Т�F�b6�73�&f�&��w&�W#�Т��&V�6�73�&f�&���&V�#�*�Z;.izR����&V��ТƖ�WBG�S�&FFR"6�73�&f�&��6��G&��"�C�&��FFR"���WC�'WFFT��&�6�2��#�Т��F�c�Т�F�b6�73�&f�&��w&�W#�Т��&V�6�73�&f�&���&V�#�*�Z;.K�j�����&V��ТƖ�WBG�S�&�V�&W""6�73�&f�&��6��G&��"�C�&��&�6R"�6V���FW#�#"���WC�'WFFT��&�6�2��#�Т��F�c�Т��F�c�Т�F�b6�73�&f�&��w&�W#�Т��&V�6�73�&f�&���&V�#�Xޘik�k9^8;��ii��ȃ##^[�CiȎiK�Y���ȓ���&V��Т�6V�V7B6�73�&f�&��6��G&��"�C�&��6����r"��6��vS�'WFFT��&�6�2��#�Т��F���f�VS�##�;�XZ^�^�*h�^�Ȏ�ii�Xhn�ȓ���F����Т��Fw&�W�&V��.8�8)>8�8)>8:�8*�89�8988>8*��Ȏiz^i�Θ;^K���Ȓ#�Т��F���f�VS�#sR#�8(n8n898+88>88�89�8+�88�*Ss^�ȄN8;�&�~K�^Xh^�ȓ���F����Т��F���f�VS�#s�#�8(n8n898+88>88�*Ss��ȄN8;�66�8;��~K�^Xh^�ȓ���F����Т��F���f�VS�#3�#�8(n8n898+88>88�89~8:�8+�*S3��ȎK��Y��ȓ���F����Т��F���f�VS�#s#�8(n8n8988>8*�c8+^8*N8+�*Ss���F����Т��F���f�VS�#�#�8(n8n8988>8*��8+^8*N8+�*S����F����Т��F���f�VS�#S#�8(n8n8988>8*�8+^8*N8+�*S�S���F����Т��F���f�VS�#3S#�8(n8n8988>8*�#8+^8*N8+�*S�3S���F����Т��F���f�VS�#S#�8(n8n8988>8*�C8+^8*N8+�*S�S���F����Т��F���f�VS�#�#�8(n8n8988>8*�c8+^8*N8+�*SÃ���F����Т��F���f�VS�###�8(n8n8988>8*�s8+^8*N8+�*S"����F����Т���Fw&�W�Т��Fw&�W�&V��.8�8�K�b#�Т��F���f�VS�##R#�8*�8:�88>8*�89�8+�88�*S#S���F����Т��F���f�VS�##�i��	��;^K���ȎZ�[�.�Ȝ*S���F����Т��F���f�VS�#C#�i��	��;^K���ȎZ�[�.ZIb[��Ȝ*SC���F����Т��F���f�VS�##S#�i��	��;^K���ȎZ�[�.ZIbK���Ȝ*S#S���F����Т���Fw&�W�Т��6V�V7C�Т��F�c�Т�F�b6�73�&f�&��w&�W#�Т��&V�6�73�&f�&���&V�#�89~8:�88>88�89^8*�8;�8:���&V��Т�6V�V7B6�73�&f�&��6��G&��"�C�&���Ff�&�"��6��vS�'WFFT��&�6�2��#�Т��Fw&�W�&V��.8:�8*�89�#�Т��F���f�VS�##�8:�8*�89�S���F����Т��F���f�VS�#�#�8:�8*�89��S���F����Т��F���f�VS�#�#�8:�8*�89��S���F����Т��F���f�VS�#r#�8:�8*�89�rS���F����Т��F���f�VS�#b#�8:�8*�89�bS���F����Т��F���f�VS�#B�R#�8:�8*�89�B�RS���F����Т���Fw&�W�Т��Fw&�W�&V��.8�8�K�b#�Т��F���f�VS�##�8:8:�8*�8:��ȃ^�ȓ���F����Т��F���f�VS�#��#���89^8:�89��ȃ��^�ȓ���F����Т��F���f�VS�##�z�[{�*�Z;.�Ȏh��i[ii�8�8~�ȓ���F����Т���Fw&�W�Т��6V�V7C�Т��F�c�Т�F�b6�73�'&�f�B�6�2"�C�&��&��6�2#�Т�F�b6�73�'&�f�B�6�2�&�r#��7��*�Z;.K�j���7���7��C�&6�2�&�6R#�*S��7����F�c�Т�F�b6�73�'&�f�B�6�2�&�r#��7��K�^XZ^8(�K�j���7���7��C�&6�2�6�7B#�*S��7����F�c�Т�F�b6�73�'&�f�B�6�2�&�r#��7��ii���7���7��C�&6�2�6��#�*S��7����F�c�Т�F�b6�73�'&�f�B�6�2�&�r#��7��h��i[ii���7���7��C�&6�2�fVR#�*S��7����F�c�Т�F�b6�73�'&�f�B�6�2�&�rF�F�#��7��X��y����7���7��C�&6�2�&�f�B#�*S��7����F�c�Т�F�b6�73�'&�f�B�6�2�&�r#��7�7G��S�&6���#�f"���FW�C"�#�X��y��x�s��7���7��C�&6�2�&FR"7G��S�&6���#�f"���66V�B��#�S��7����F�c�Т��F�c�Т�F�b6�73�&f�&��w&�W"7G��S�&�&v���F��'��#�Т��&V�6�73�&f�&���&V�#�8:8:#���&V��Т�FW�F&V6�73�&f�&��6��G&��"�C�&���V��"�6V���FW#�.�;�XZ^�^8:8:.8�8�#���FW�F&V�Т��F�c�Т�F�b6�73�&f�&��f��FW"#�Т�'WGF��6�73�&'F�'F��6V6��F'�"��6Ɩ6��&6��6T��Fv��F�ֆ�&�r�#�8*�8:>8;>8+�8:���'WGF���Т�'WGF��6�73�&'F�'F��&��'�"��6Ɩ6��'6fT��&���#�y����#��'WGF���Т��F�c�Т��F�c�У��F�c�РУ����������Dâ89~8:�8+�8*~8*�88����X���������У�F�b6�73�&��F���fW&��"�C�&��F��&��V7B#�Т�F�b6�73�&��F�#�Т�F�b6�73�&��F�ֆVFW"#�Т�7�6�73�&��F��F�F�R#�	�*ik�h�89~8:�8+�8*~8*�88���7��Т�'WGF��6�73�&��F��6��6R"��6Ɩ6��&6��6T��Fv��F��&��V7Br�#�)�S��'WGF���Т��F�c�Т�F�b6�73�&f�&��w&�W#�Т��&V�6�73�&f�&���&V�#�89~8:�8+�8*~8*�88�Y�����&V��ТƖ�WBG�S�'FW�B"6�73�&f�&��6��G&��"�C�'���R"�6V���FW#�.K賢F��F��X�^yK�888:>8;>88�8:�#�Т��F�c�Т�F�b6�73�&f�&��w&�W#�Т��&V�6�73�&f�&���&V�#�jh.�h8;����i�����&V��Т�FW�F&V6�73�&f�&��6��G&��"�C�'�FW62"�6V���FW#�.K�^8).8�8(�89~8:�8+�8*~8*�88�8�#���FW�F&V�Т��F�c�Т�F�b6�73�&f�&��w&�W#�Т��&V�6�73�&f�&���&V�#�	�+89�88�8+�8*N8+���ފ�����&V��Т�FW�F&V6�73�&f�&��6��G&��"�C�'����WF��R"�6V���FW#�.8�8n8(N8>8nz��88�8X��y��X�n8�K�^{XN8�8).i��8�"7G��S�&֖�ֆV�v�C�#��#���FW�F&V�Т��F�c�Т�F�b6�73�&f�&��&�r#�Т�F�b6�73�&f�&��w&�W#�Т��&V�6�73�&f�&���&V�#�iȎ�i>y��j���y�����&V��ТƖ�WBG�S�&�V�&W""6�73�&f�&��6��G&��"�C�'�F&vWB"�6V���FW#�##�Т��F�c�Т�F�b6�73�&f�&��w&�W#�Т��&V�6�73�&f�&���&V�#�8+�88n8;�8+�8+����&V��Т�6V�V7B6�73�&f�&��6��G&��"�C�'�7FGW2#�Т��F����yK�K�����F������F����.��K�����F������F����Z��K�c���F������F����X�j�#���F����Т��6V�V7C�Т��F�c�Т��F�c�Т�F�b6�73�&f�&��w&�W#�Т��&V�6�73�&f�&���&V�#�h�Zx�izS���&V��ТƖ�WBG�S�&FFR"6�73�&f�&��6��G&��"�C�'�7F'B#�Т��F�c�Т�F�b6�73�&f�&��w&�W#�Т��&V�6�73�&f�&���&V�#�	�9289>8+�88�8+�88�8;�88��Ȏ8*.8*N88~8*.8;�8:�8;�88�89�88>89~8;�z�nY�X�ni�8�8��ȓ���&V��Т�FW�F&V6�73�&f�&��6��G&��"�C�'���FR"�6V���FW#�.�z�yK8�i��8�"7G��S�&֖�ֆV�v�C�C��#���FW�F&V�Т��F�c�Т�F�b6�73�&f�&��f��FW"#�Т�'WGF��6�73�&'F�'F��6V6��F'�"��6Ɩ6��&6��6T��Fv��F��&��V7Br�#�8*�8:>8;>8+�8:���'WGF���Т�'WGF��6�73�&'F�'F��&��'�"��6Ɩ6��'6fU&��V7B��#���X���'WGF���Т��F�c�Т��F�c�У��F�c�РУ����������Dâ89~8:�8+�8*~8*�88���>{K��������У�F�b6�73�&��F���fW&��"�C�&��F��&���FWF��#�Т�F�b6�73�&��F�#�Т�F�b6�73�&��F�ֆVFW"#�Т�7�6�73�&��F��F�F�R"�C�&FWF���F�F�R#���7��Т�'WGF��6�73�&��F��6��6R"��6Ɩ6��&6��6T��Fv��F��&���FWF��r�#�)�S��'WGF���Т��F�c�Т�F�b�C�&FWF���6��FV�B#���F�c�Т�F�b6�73�&f�&��f��FW"#�Т�'WGF��6�73�&'F�'F��F�vW"'F��6�"�C�&FWF���FV�WFR�'F�#�X����C��'WGF���Т�'WGF��6�73�&'F�'F��6V6��F'�"��6Ɩ6��&6��6T��Fv��F��&���FWF��r�#�h�8�8(���'WGF���Т��F�c�Т��F�c�У��F�c�РУ����������DâX��jZ�X��iJ���������У�F�b6�73�&��F���fW&��"�C�&��F��gV�R�6�WW6��#�Т�F�b6�73�&��F�#�Т�F�b6�73�&��F�ֆVFW"#�Т�7�6�73�&��F��F�F�R#��ȲX��jZ�X��iJ���7��Т�'WGF��6�73�&��F��6��6R"��6Ɩ6��&6��6T��Fv��F��gV�R�6�WW6��r�#�)�S��'WGF���Т��F�c�Т�F�b6�73�&f�&��w&�W#�Т��&V�6�73�&f�&���&V�#�89~8:�8+�8*~8*�88����&V��Т�6V�V7B6�73�&f�&��6��G&��"�C�&g2�&��V7B#�Т��F���f�VS�"#��h���ȎK��hH��ȓ���F����Т��6V�V7C�Т��F�c�Т�F�b6�73�&f�&��&�r#�Т�F�b6�73�&f�&��w&�W#�Т��&V�6�73�&f�&���&V�#�XˮX�c���&V��Т�6V�V7B6�73�&f�&��6��G&��"�C�&g2�G�R#�Т��F���f�VS�.X��XZR#�X��XZS���F������F���f�VS�.iJ�X{�#�iJ�X{����F����Т��6V�V7C�Т��F�c�Т�F�b6�73�&f�&��w&�W#�Т��&V�6�73�&f�&���&V�#�iz^K�����&V��ТƖ�WBG�S�&FFR"6�73�&f�&��6��G&��"�C�&g2�FFR#�Т��F�c�Т��F�c�Т�F�b6�73�&f�&��w&�W#�Т��&V�6�73�&f�&���&V�#�y�����&V��ТƖ�WBG�S�&�V�&W""6�73�&f�&��6��G&��"�C�&g2���V�B"�6V���FW#�##�Т��F�c�Т�F�b6�73�&f�&��w&�W#�Т��&V�6�73�&f�&���&V�#�Xh^Z����&V��ТƖ�WBG�S�'FW�B"6�73�&f�&��6��G&��"�C�&g2�FW62"�6V���FW#�.X��iJ�8�Xh^Z�#�Т��F�c�Т�F�b6�73�&f�&��w&�W#�Т��&V�6�73�&f�&���&V�#�8:8:#���&V��Т�FW�F&V6�73�&f�&��6��G&��"�C�&g2��V��#���FW�F&V�Т��F�c�Т�F�b6�73�&f�&��f��FW"#�Т�'WGF��6�73�&'F�'F��6V6��F'�"��6Ɩ6��&6��6T��Fv��F��gV�R�6�WW6��r�#�8*�8:>8;>8+�8:���'WGF���Т�'WGF��6�73�&'F�'F��&��'�"��6Ɩ6��'6fTgV�U6�WW6����#�y����#��'WGF���Т��F�c�Т��F�c�У��F�c�РУ����������Dâ{x�Y�X��iJ����X���������У�F�b6�73�&��F���fW&��"�C�&��F��6�WW6��#�Т�F�b6�73�&��F�#�Т�F�b6�73�&��F�ֆVFW"#�Т�7�6�73�&��F��F�F�R#��ȲX��iJ����X���7��Т�'WGF��6�73�&��F��6��6R"��6Ɩ6��&6��6T��Fv��F��6�WW6��r�#�)�S��'WGF���Т��F�c�Т�F�b6�73�&f�&��&�r#�Т�F�b6�73�&f�&��w&�W#�Т��&V�6�73�&f�&���&V�#�XˮX�c���&V��Т�6V�V7B6�73�&f�&��6��G&��"�C�&72�G�R#�Т��F���f�VS�.X��XZR#�X��XZS���F������F���f�VS�.iJ�X{�#�iJ�X{����F����Т��6V�V7C�Т��F�c�Т�F�b6�73�&f�&��w&�W#�Т��&V�6�73�&f�&���&V�#�8*�88n8+N8:����&V��Т�6V�V7B6�73�&f�&��6��G&��"�C�&72�6FVv�'�#�Т��F����X�Ny����F������F����X��jZ����F������F����yI�kK��+����F������F����Y��Z鮋+����F������F����i[C���F������F����8�8�K�c���F����Т��6V�V7C�Т��F�c�Т��F�c�Т�F�b6�73�&f�&��&�r#�Т�F�b6�73�&f�&��w&�W#�Т��&V�6�73�&f�&���&V�#�iz^K�����&V��ТƖ�WBG�S�&FFR"6�73�&f�&��6��G&��"�C�&72�FFR#�Т��F�c�Т�F�b6�73�&f�&��w&�W#�Т��&V�6�73�&f�&���&V�#�y�����&V��ТƖ�WBG�S�&�V�&W""6�73�&f�&��6��G&��"�C�&72���V�B"�6V���FW#�##�Т��F�c�Т��F�c�Т�F�b6�73�&f�&��w&�W#�Т��&V�6�73�&f�&���&V�#�Xh^Z����&V��ТƖ�WBG�S�'FW�B"6�73�&f�&��6��G&��"�C�&72�FW62"�6V���FW#�.X��iJ�8�Xh^Z�#�Т��F�c�Т�F�b6�73�&f�&��w&�W#�Т��&V�6�73�&f�&���&V�#�8:8:#���&V��Т�FW�F&V6�73�&f�&��6��G&��"�C�&72��V��#���FW�F&V�Т��F�c�Т�F�b6�73�&f�&��f��FW"#�Т�'WGF��6�73�&'F�'F��6V6��F'�"��6Ɩ6��&6��6T��Fv��F��6�WW6��r�#�8*�8:>8;>8+�8:���'WGF���Т�'WGF��6�73�&'F�'F��&��'�"��6Ɩ6��'6fU6�WW6����#�y����#��'WGF���Т��F�c�Т��F�c�У��F�c�РУ����������DâY��Z鮋+�z�yb��������У�F�b6�73�&��F���fW&��"�C�&��F��f��VB#�Т�F�b6�73�&��F�#�Т�F�b6�73�&��F�ֆVFW"#�Т�7�6�73�&��F��F�F�R#�	�HBY��Z鮋+�z�yc��7��Т�'WGF��6�73�&��F��6��6R"��6Ɩ6��&6��6T��Fv��F��f��VBr�#�)�S��'WGF���Т��F�c�Т���X��i��j辚�����Т�F�b7G��S�&&6�w&�V�C�f"���7W&f6S"��&�&FW"�&F�W3����FF��s�'���&v���&�GF�ӣg��#�Т�F�b7G��S�&f��B�6��S�'��6���#�f"���FW�C"��f��B�vV�v�C�c��&v���&�GF�ӣ���#�	�+X��i��j辚���ȎXZ�i���i>8�h�Zx�j辚���ȓ��F�c�Т�F�b7G��S�&F�7���f�W��v����Ɩv�֗FV�3�6V�FW#�#�ТƖ�WBG�S�&�V�&W""6�73�&f�&��6��G&��"�C�&�"���V�B"�6V���FW#�#"7G��S�&f�W���#�Т�'WGF��6�73�&'F�'F��&��'�'F��6�"��6Ɩ6��'6fT�V��t&��6R��#�Z���'WGF���Т��F�c�Т�F�b�C�&�"�7W'&V�B"7G��S�&f��B�6��S���6���#�f"���FW�C"���&v���F��g��#���F�c�Т��F�c�Т���Y��Z鮋+����X����Т�F�b7G��S�&f��B�6��S�'��6���#�f"���FW�C"��f��B�vV�v�C�c��&v���&�GF�ӣ���#��ȲY��Z鮋+�8).���X���F�c�Т�F�b6�73�&f�&��&�r#�Т�F�b6�73�&f�&��w&�W#�Т��&V�6�73�&f�&���&V�#�XˮX�c���&V��Т�6V�V7B6�73�&f�&��6��G&��"�C�&f2�G�R#�Т��F���f�VS�.iJ�X{�#�iJ�X{����F������F���f�VS�.X��XZR#�X��XZS���F����Т��6V�V7C�Т��F�c�Т�F�b6�73�&f�&��w&�W#�Т��&V�6�73�&f�&���&V�#�j��iȎK�^izS���&V��ТƖ�WBG�S�&�V�&W""6�73�&f�&��6��G&��"�C�&f2�F�"�6V���FW#�#"֖��#"���#3"f�VS�##�Т��F�c�Т��F�c�Т�F�b6�73�&f�&��&�r#�Т�F�b6�73�&f�&��w&�W#�Т��&V�6�73�&f�&���&V�#�^y��Y�����&V��ТƖ�WBG�S�'FW�B"6�73�&f�&��6��G&��"�C�&f2���R"�6V���FW#�.K賢Z�n�82#�Т��F�c�Т�F�b6�73�&f�&��w&�W#�Т��&V�6�73�&f�&���&V�#�y������&V��ТƖ�WBG�S�&�V�&W""6�73�&f�&��6��G&��"�C�&f2���V�B"�6V���FW#�##�Т��F�c�Т��F�c�Т�F�b7G��S�'FW�B�Ɩv�&�v�C��&v���&�GF�ӣg��#�Т�'WGF��6�73�&'F�'F��&��'�'F��6�"��6Ɩ6��'aveFixedCost()">追加</button>
+    </div>
+    <!-- 固定費一覧 -->
+    <div id="fc-list"></div>
+    <div class="form-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-fixed')">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: 仕入れ修正 ===== -->
+<div class="modal-overlay" id="modal-edit-stock">
   <div class="modal">
     <div class="modal-header">
-      <span class="modal-title">📦 仕入れ登録</span>
-      <button class="modal-close" onclick="closeModal('modal-shiire')">✕</button>
+      <span class="modal-title">✏️ 仕入れ修正</span>
+      <button class="modal-close" onclick="closeModal('modal-edit-stock')">✕</button>
     </div>
+    <input type="hidden" id="es2-id">
     <div class="form-group">
-      <label class="form-label">管理番号（自動）</label>
-      <input type="text" class="form-control" id="s-id" readonly style="opacity:.5;">
+      <label class="form-label">管理番号</label>
+      <input type="text" class="form-control" id="es2-stockid" readonly style="opacity:.5;">
     </div>
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">商品名 *</label>
-        <input type="text" class="form-control" id="s-name" placeholder="例: デニムジャケット">
+        <input type="text" class="form-control" id="es2-name">
       </div>
       <div class="form-group">
         <label class="form-label">ブランド</label>
-        <input type="text" class="form-control" id="s-brand" placeholder="例: Levi's">
+        <input type="text" class="form-control" id="es2-brand">
       </div>
     </div>
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">仕入れ価格 *</label>
-        <input type="number" class="form-control" id="s-price" placeholder="0">
+        <input type="number" class="form-control" id="es2-price" placeholder="0">
       </div>
       <div class="form-group">
         <label class="form-label">仕入れ日 *</label>
-        <input type="date" class="form-control" id="s-date">
+        <input type="date" class="form-control" id="es2-date">
       </div>
     </div>
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">カテゴリ</label>
-        <select class="form-control" id="s-category">
+        <select class="form-control" id="es2-category">
           <option>トップス</option><option>ボトムス</option><option>アウター</option>
           <option>シューズ</option><option>バッグ</option><option>アクセサリー</option><option>その他</option>
         </select>
       </div>
       <div class="form-group">
         <label class="form-label">状態</label>
-        <select class="form-control" id="s-condition">
+        <select class="form-control" id="es2-condition">
           <option>新品・未使用</option><option>未使用に近い</option><option>目立った傷なし</option>
           <option>やや傷・汚れあり</option><option>傷・汚れあり</option><option>全体的に傷あり</option>
         </select>
@@ -284,45 +309,41 @@ select.form-control option{background:var(--surface2);color:var(--text);}
     </div>
     <div class="form-group">
       <label class="form-label">目安販売価格</label>
-      <input type="number" class="form-control" id="s-target-price" placeholder="0">
+      <input type="number" class="form-control" id="es2-target" placeholder="0">
     </div>
     <div class="form-group">
       <label class="form-label">メモ</label>
-      <textarea class="form-control" id="s-memo" placeholder="特徴・状態詳細など"></textarea>
+      <textarea class="form-control" id="es2-memo"></textarea>
     </div>
     <div class="form-footer">
-      <button class="btn btn-secondary" onclick="closeModal('modal-shiire')">キャンセル</button>
-      <button class="btn btn-primary" onclick="saveShiire()">登録</button>
+      <button class="btn btn-secondary" onclick="closeModal('modal-edit-stock')">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveEditStock()">保存</button>
     </div>
   </div>
 </div>
 
-<!-- ===== MODAL: 販売登録 ===== -->
-<div class="modal-overlay" id="modal-hanbai">
+<!-- ===== MODAL: 販売修正 ===== -->
+<div class="modal-overlay" id="modal-edit-sale">
   <div class="modal">
     <div class="modal-header">
-      <span class="modal-title">💴 販売登録</span>
-      <button class="modal-close" onclick="closeModal('modal-hanbai')">✕</button>
+      <span class="modal-title">✏️ 販売修正</span>
+      <button class="modal-close" onclick="closeModal('modal-edit-sale')">✕</button>
     </div>
-    <div class="form-group">
-      <label class="form-label">商品選択 *</label>
-      <select class="form-control" id="h-item" onchange="updateHanbaiCalc()">
-        <option value="">在庫から選択</option>
-      </select>
-    </div>
+    <input type="hidden" id="es-id">
+    <div style="background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:13px;" id="es-item-info"></div>
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">販売日 *</label>
-        <input type="date" class="form-control" id="h-date" oninput="updateHanbaiCalc()">
+        <input type="date" class="form-control" id="es-date" oninput="updateEditSaleCalc()">
       </div>
       <div class="form-group">
         <label class="form-label">販売価格 *</label>
-        <input type="number" class="form-control" id="h-price" placeholder="0" oninput="updateHanbaiCalc()">
+        <input type="number" class="form-control" id="es-price" placeholder="0" oninput="updateEditSaleCalc()">
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">配送方法・送料（2025年1月改定）</label>
-      <select class="form-control" id="h-shipping" onchange="updateHanbaiCalc()">
+      <label class="form-label">配送方法・送料</label>
+      <select class="form-control" id="es-shipping" onchange="updateEditSaleCalc()">
         <option value="0">購入者負担（送料0円）</option>
         <optgroup label="かんたんラクマパック（日本郵便）">
           <option value="175">ゆうパケットポスト ¥175（A4・2kg以内）</option>
@@ -346,7 +367,7 @@ select.form-control option{background:var(--surface2);color:var(--text);}
     </div>
     <div class="form-group">
       <label class="form-label">プラットフォーム</label>
-      <select class="form-control" id="h-platform" onchange="updateHanbaiCalc()">
+      <select class="form-control" id="es-platform" onchange="updateEditSaleCalc()">
         <optgroup label="ラクマ">
           <option value="10">ラクマ 10%</option>
           <option value="9">ラクマ 9%</option>
@@ -362,172 +383,21 @@ select.form-control option{background:var(--surface2);color:var(--text);}
         </optgroup>
       </select>
     </div>
-    <div class="profit-calc" id="hanbai-calc">
-      <div class="profit-calc-row"><span>販売価格</span><span id="calc-price">¥0</span></div>
-      <div class="profit-calc-row"><span>仕入れ価格</span><span id="calc-cost">¥0</span></div>
-      <div class="profit-calc-row"><span>送料</span><span id="calc-ship">¥0</span></div>
-      <div class="profit-calc-row"><span>手数料</span><span id="calc-fee">¥0</span></div>
-      <div class="profit-calc-row total"><span>利益</span><span id="calc-profit">¥0</span></div>
-      <div class="profit-calc-row"><span style="color:var(--text2)">利益率</span><span id="calc-rate" style="color:var(--accent);">0%</span></div>
+    <div class="profit-calc" id="edit-sale-calc">
+      <div class="profit-calc-row"><span>販売価格</span><span id="es-calc-price">¥0</span></div>
+      <div class="profit-calc-row"><span>仕入れ価格</span><span id="es-calc-cost">¥0</span></div>
+      <div class="profit-calc-row"><span>送料</span><span id="es-calc-ship">¥0</span></div>
+      <div class="profit-calc-row"><span>手数料</span><span id="es-calc-fee">¥0</span></div>
+      <div class="profit-calc-row total"><span>利益</span><span id="es-calc-profit">¥0</span></div>
+      <div class="profit-calc-row"><span style="color:var(--text2)">利益率</span><span id="es-calc-rate" style="color:var(--accent);">0%</span></div>
     </div>
     <div class="form-group" style="margin-top:12px;">
       <label class="form-label">メモ</label>
-      <textarea class="form-control" id="h-memo" placeholder="購入者メモなど"></textarea>
+      <textarea class="form-control" id="es-memo" placeholder="メモ"></textarea>
     </div>
     <div class="form-footer">
-      <button class="btn btn-secondary" onclick="closeModal('modal-hanbai')">キャンセル</button>
-      <button class="btn btn-primary" onclick="saveHanbai()">登録</button>
-    </div>
-  </div>
-</div>
-
-<!-- ===== MODAL: プロジェクト追加 ===== -->
-<div class="modal-overlay" id="modal-project">
-  <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title">💡 新規プロジェクト</span>
-      <button class="modal-close" onclick="closeModal('modal-project')">✕</button>
-    </div>
-    <div class="form-group">
-      <label class="form-label">プロジェクト名 *</label>
-      <input type="text" class="form-control" id="p-name" placeholder="例: TikTok動画チャンネル">
-    </div>
-    <div class="form-group">
-      <label class="form-label">概要・説明</label>
-      <textarea class="form-control" id="p-desc" placeholder="何をするプロジェクトか"></textarea>
-    </div>
-    <div class="form-group">
-      <label class="form-label">💰 マネタイズ設計</label>
-      <textarea class="form-control" id="p-monetize" placeholder="どうやって稼ぐか、収益化の仕組みを書く" style="min-height:120px;"></textarea>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">月間目標金額</label>
-        <input type="number" class="form-control" id="p-target" placeholder="0">
-      </div>
-      <div class="form-group">
-        <label class="form-label">ステータス</label>
-        <select class="form-control" id="p-status">
-          <option>計画中</option><option>進行中</option><option>完了</option><option>停止</option>
-        </select>
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">開始日</label>
-      <input type="date" class="form-control" id="p-start">
-    </div>
-    <div class="form-group">
-      <label class="form-label">📓 ビジネスノート（アイデア・ロードマップ・競合分析など）</label>
-      <textarea class="form-control" id="p-note" placeholder="自由に書く" style="min-height:140px;"></textarea>
-    </div>
-    <div class="form-footer">
-      <button class="btn btn-secondary" onclick="closeModal('modal-project')">キャンセル</button>
-      <button class="btn btn-primary" onclick="saveProject()">追加</button>
-    </div>
-  </div>
-</div>
-
-<!-- ===== MODAL: プロジェクト詳細 ===== -->
-<div class="modal-overlay" id="modal-proj-detail">
-  <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title" id="detail-title"></span>
-      <button class="modal-close" onclick="closeModal('modal-proj-detail')">✕</button>
-    </div>
-    <div id="detail-content"></div>
-    <div class="form-footer">
-      <button class="btn btn-danger btn-sm" id="detail-delete-btn">削除</button>
-      <button class="btn btn-secondary" onclick="closeModal('modal-proj-detail')">閉じる</button>
-    </div>
-  </div>
-</div>
-
-<!-- ===== MODAL: 副業収支 ===== -->
-<div class="modal-overlay" id="modal-fuku-shuushi">
-  <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title">＋ 副業収支</span>
-      <button class="modal-close" onclick="closeModal('modal-fuku-shuushi')">✕</button>
-    </div>
-    <div class="form-group">
-      <label class="form-label">プロジェクト</label>
-      <select class="form-control" id="fs-project">
-        <option value="">選択（任意）</option>
-      </select>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">区分</label>
-        <select class="form-control" id="fs-type">
-          <option value="収入">収入</option><option value="支出">支出</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">日付</label>
-        <input type="date" class="form-control" id="fs-date">
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">金額</label>
-      <input type="number" class="form-control" id="fs-amount" placeholder="0">
-    </div>
-    <div class="form-group">
-      <label class="form-label">内容</label>
-      <input type="text" class="form-control" id="fs-desc" placeholder="収支の内容">
-    </div>
-    <div class="form-group">
-      <label class="form-label">メモ</label>
-      <textarea class="form-control" id="fs-memo"></textarea>
-    </div>
-    <div class="form-footer">
-      <button class="btn btn-secondary" onclick="closeModal('modal-fuku-shuushi')">キャンセル</button>
-      <button class="btn btn-primary" onclick="saveFukuShuushi()">登録</button>
-    </div>
-  </div>
-</div>
-
-<!-- ===== MODAL: 総合収支追加 ===== -->
-<div class="modal-overlay" id="modal-shuushi">
-  <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title">＋ 収支追加</span>
-      <button class="modal-close" onclick="closeModal('modal-shuushi')">✕</button>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">区分</label>
-        <select class="form-control" id="cs-type">
-          <option value="収入">収入</option><option value="支出">支出</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">カテゴリ</label>
-        <select class="form-control" id="cs-category">
-          <option>古着</option><option>副業</option><option>生活費</option><option>その他</option>
-        </select>
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">日付</label>
-        <input type="date" class="form-control" id="cs-date">
-      </div>
-      <div class="form-group">
-        <label class="form-label">金額</label>
-        <input type="number" class="form-control" id="cs-amount" placeholder="0">
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">内容</label>
-      <input type="text" class="form-control" id="cs-desc" placeholder="収支の内容">
-    </div>
-    <div class="form-group">
-      <label class="form-label">メモ</label>
-      <textarea class="form-control" id="cs-memo"></textarea>
-    </div>
-    <div class="form-footer">
-      <button class="btn btn-secondary" onclick="closeModal('modal-shuushi')">キャンセル</button>
-      <button class="btn btn-primary" onclick="saveShuushi()">登録</button>
+      <button class="btn btn-secondary" onclick="closeModal('modal-edit-sale')">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveEditSale()">保存</button>
     </div>
   </div>
 </div>
@@ -544,6 +414,9 @@ const DB = {
   sales:     () => DB.get('fg_sales'),
   projects:  () => DB.get('fg_projects'),
   cashflows: () => DB.get('fg_cashflows'),
+  fixedCosts:() => DB.get('fg_fixed_costs'),
+  getOpeningBalance: () => parseInt(localStorage.getItem('fg_opening_balance')||'0'),
+  setOpeningBalance: v => localStorage.setItem('fg_opening_balance', String(v)),
 };
 
 // ===== UTILS =====
@@ -640,6 +513,12 @@ function openModal(id){
   if(id==='modal-shuushi'){
     document.getElementById('cs-date').value=todayStr();
   }
+  if(id==='modal-fixed'){
+    const ob=DB.getOpeningBalance();
+    document.getElementById('ob-amount').value=ob||'';
+    document.getElementById('ob-current').textContent=ob?`現在の初期残高: ${fmtYen(ob)}`:'';
+    renderFixedCostList();
+  }
   document.getElementById(id).classList.add('active');
 }
 function closeModal(id){
@@ -693,7 +572,7 @@ function renderStock(){
   }).slice().reverse();
   const tbody=document.getElementById('stock-tbody');
   if(!filtered.length){
-    tbody.innerHTML=`<tr><td colspan="8" style="text-align:center;color:var(--text2);padding:30px;">データがありません</td></tr>`;
+    tbody.innerHTML<`<tr><td colspan="8" style="text-align:center;color:var(--text2);padding:30px;">データがありません</td></tr>`;
     return;
   }
   tbody.innerHTML=filtered.map(s=>`
@@ -707,6 +586,7 @@ function renderStock(){
       <td>${statusBadge(s.status)}</td>
       <td style="display:flex;gap:4px;">
         ${s.status==='在庫'?`<button class="btn btn-success btn-sm" onclick="quickSell('${s.id}')">売る</button>`:''}
+        <button class="btn btn-secondary btn-sm" onclick="openEditStock('${s.id}')">編集</button>
         <button class="btn btn-secondary btn-sm" onclick="deleteStock('${s.id}')">削</button>
       </td>
     </tr>
@@ -714,9 +594,58 @@ function renderStock(){
 }
 
 function deleteStock(id){
-  if(!confirm('削除しますか？'))return;
+  if(!confirm('削除しますお���'))return;
   DB.set('fg_stocks',DB.stocks().filter(s=>s.id!==id));
   renderStock();
+}
+function openEditStock(id){
+  const s=DB.stocks().find(x=>x.id===id);
+  if(!s)return;
+  document.getElementById('es2-id').value=s.id;
+  document.getElementById('es2-stockid').value=s.id;
+  document.getElementById('es2-name').value=s.name;
+  document.getElementById('es2-brand').value=s.brand||'';
+  document.getElementById('es2-price').value=s.purchasePrice;
+  document.getElementById('es2-date').value=s.purchaseDate;
+  document.getElementById('es2-target').value=s.targetPrice||'';
+  document.getElementById('es2-memo').value=s.memo||'';
+  const cat=document.getElementById('es2-category');
+  for(let i=0;i<cat.options.length;i++){if(cat.options[i].value===s.category){cat.selectedIndex=i;break;}}
+  const cond=document.getElementById('es2-condition');
+  for(let i=0;i<cond.options.length;i++){if(cond.options[i].value===s.condition){cond.selectedIndex=i;break;}}
+  document.getElementById('modal-edit-stock').classList.add('active');
+}
+function saveEditStock(){
+  const id=document.getElementById('es2-id').value;
+  const name=document.getElementById('es2-name').value.trim();
+  const price=parseInt(document.getElementById('es2-price').value)||0;
+  const date=document.getElementById('es2-date').value;
+  if(!name||!price||!date){showToast('商品名・価格・日付は必須','var(--danger)');return;}
+  const stocks=DB.stocks();
+  const idx=stocks.findIndex(s=>s.id===id);
+  if(idx<0)return;
+  const old=stocks[idx];
+  stocks[idx]={
+    ...old,name,
+    brand:document.getElementById('es2-brand').value.trim(),
+    purchasePrice:price,purchaseDate:date,
+    category:document.getElementById('es2-category').value,
+    condition:document.getElementById('es2-condition').value,
+    targetPrice:parseInt(document.getElementById('es2-target').value)||0,
+    memo:document.getElementById('es2-memo').value.trim(),
+  };
+  DB.set('fg_stocks',stocks);
+  // 仕入れ支出のcashflowを更新（memo===itemId && 仕入: で識別）
+  const cfs=DB.cashflows();
+  const cfIdx=cfs.findIndex(c=>c.auto&&c.memo===id&&c.type==='支出'&&c.description&&c.description.startsWith('仕入:'));
+  if(cfIdx>=0){
+    cfs[cfIdx]={...cfs[cfIdx],amount:price,date,description:`仕入: ${name}`};
+    DB.set('fg_cashflows',cfs);
+  }
+  closeModal('modal-edit-stock');
+  renderStock();
+  updateGoal();
+  showToast('仕入れ情報を更新しました');
 }
 function quickSell(id){
   openModal('modal-hanbai');
@@ -732,7 +661,7 @@ function populateItemSelect(preselect){
   const sel=document.getElementById('h-item');
   if(!sel)return;
   sel.innerHTML='<option value="">在庫から選択</option>'+
-    stocks.map(s=>`<option value="${s.id}" ${s.id===preselect?'selected':''}>${s.id} ${s.name}（${fmtYen(s.purchasePrice)}）</option>`).join('');
+    stocks.map(s=>`<option value="${s.id}" ${s.id===preselect?'selected':''}>${s.id} ${s.name|（${fmtYen(s.purchasePrice)}）</option>`).join('');
 }
 
 function updateHanbaiCalc(){
@@ -773,7 +702,7 @@ function saveHanbai(){
   const profit=salePrice-item.purchasePrice-shipping-fee;
   // 販売記録
   const sales=DB.sales();
-  sales.push({
+  sales.push(
     id:genId('SALE'),itemId,itemName:item.name,saleDate,salePrice,
     cost:item.purchasePrice,shipping,shippingMethod:shippingLabel,
     fee,platform,profit,
@@ -781,131 +710,7 @@ function saveHanbai(){
     memo:document.getElementById('h-memo').value.trim(),
     createdAt:new Date().toISOString(),
   });
-  DB.set('fg_sales',sales);
-  // 在庫ステータス更新
-  const idx=stocks.findIndex(s=>s.id===itemId);
-  stocks[idx].status='販売済'; stocks[idx].soldAt=saleDate;
-  DB.set('fg_stocks',stocks);
-  // 仕入れの支出を取り消し、販売収入を記録（または利益のみ記録）
-  // 設計: 仕入れ支出 + 販売収入を両方記録（収支タブで正確に見える）
-  const cfs=DB.cashflows();
-  // 販売収入
-  cfs.push({id:genId('CF'),date:saleDate,type:'収入',category:'古着',amount:salePrice,description:`販売: ${item.name}`,memo:item.id,auto:true});
-  // 送料・手数料の支出
-  if(shipping>0) cfs.push({id:genId('CF'),date:saleDate,type:'支出',category:'古着',amount:shipping,description:`送料: ${item.name}`,auto:true});
-  if(fee>0) cfs.push({id:genId('CF'),date:saleDate,type:'支出',category:'古着',amount:fee,description:`手数料: ${item.name}`,auto:true});
-  DB.set('fg_cashflows',cfs);
-  closeModal('modal-hanbai');
-  renderStock();
-  updateGoal();
-  showToast(`利益 ${fmtYen(profit)} を記録しました`);
-}
-
-function renderSold(){
-  const sales=DB.sales().slice().reverse();
-  const tbody=document.getElementById('sold-tbody');
-  if(!sales.length){
-    tbody.innerHTML=`<tr><td colspan="8" style="text-align:center;color:var(--text2);padding:30px;">販売記録がありません</td></tr>`;
-    return;
-  }
-  tbody.innerHTML=sales.map(s=>`
-    <tr>
-      <td>${fmtDate(s.saleDate)}</td>
-      <td style="font-size:11px;color:var(--text2);">${s.itemId}</td>
-      <td>${s.itemName}</td>
-      <td>${fmtYen(s.salePrice)}</td>
-      <td style="font-size:11px;">${fmtYen(s.shipping)}</td>
-      <td style="font-size:11px;">${fmtYen(s.fee)}</td>
-      <td class="${s.profit>=0?'profit-pos':'profit-neg'}">${fmtYen(s.profit)}</td>
-      <td style="color:var(--accent);">${s.profitRate}%</td>
-    </tr>
-  `).join('');
-}
-
-// ===== 月次サマリー =====
-let summaryYear=new Date().getFullYear();
-let summaryMonth=new Date().getMonth()+1;
-function changeSummaryMonth(d){
-  summaryMonth+=d;
-  if(summaryMonth>12){summaryMonth=1;summaryYear++;}
-  if(summaryMonth<1){summaryMonth=12;summaryYear--;}
-  renderSummary();
-}
-function renderSummary(){
-  document.getElementById('summary-month-label').textContent=`${summaryYear}年${summaryMonth}月`;
-  const prefix=`${summaryYear}-${String(summaryMonth).padStart(2,'0')}`;
-  const stocks=DB.stocks();
-  const sales=DB.sales();
-  const monthStocks=stocks.filter(s=>s.purchaseDate&&s.purchaseDate.startsWith(prefix));
-  const monthSales=sales.filter(s=>s.saleDate&&s.saleDate.startsWith(prefix));
-  const totalCost=monthStocks.reduce((s,i)=>s+i.purchasePrice,0);
-  const totalProfit=monthSales.reduce((s,i)=>s+i.profit,0);
-  document.getElementById('summary-stats').innerHTML=`
-    <div class="stat-card"><div class="stat-label">仕入れ件数</div><div class="stat-value accent">${monthStocks.length}点</div></div>
-    <div class="stat-card"><div class="stat-label">仕入れ総額</div><div class="stat-value danger">${fmtYen(totalCost)}</div></div>
-    <div class="stat-card"><div class="stat-label">販売件数</div><div class="stat-value accent">${monthSales.length}点</div></div>
-    <div class="stat-card"><div class="stat-label">月間利益</div><div class="stat-value ${totalProfit>=0?'success':'danger'}">${fmtYen(totalProfit)}</div></div>
-  `;
-  const detail=document.getElementById('summary-detail');
-  if(!monthSales.length&&!monthStocks.length){
-    detail.innerHTML='<div class="empty"><div class="empty-icon">📭</div>この月のデータはありません</div>';return;
-  }
-  detail.innerHTML=`
-    <div style="margin-bottom:12px;">
-      <div style="font-size:12px;color:var(--text2);font-weight:600;margin-bottom:8px;">▼ 仕入れ（${monthStocks.length}件）</div>
-      ${monthStocks.map(s=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;">
-        <span>${s.name} <span style="font-size:11px;color:var(--text2);">${s.id}</span></span>
-        <span style="color:var(--danger);">${fmtYen(s.purchasePrice)}</span>
-      </div>`).join('')||'<div style="color:var(--text2);font-size:13px;padding:8px 0;">なし</div>'}
-    </div>
-    <div>
-      <div style="font-size:12px;color:var(--text2);font-weight:600;margin-bottom:8px;">▼ 販売（${monthSales.length}件）</div>
-      ${monthSales.map(s=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;">
-        <span>${s.itemName}</span>
-        <span class="${s.profit>=0?'profit-pos':'profit-neg'}">${fmtYen(s.profit)}</span>
-      </div>`).join('')||'<div style="color:var(--text2);font-size:13px;padding:8px 0;">なし</div>'}
-    </div>
-  `;
-}
-
-// ===== プロジェクト =====
-function populateProjectSelect(selId){
-  const projects=DB.projects();
-  const sel=document.getElementById(selId);
-  if(!sel)return;
-  sel.innerHTML='<option value="">選択（任意）</option>'+
-    projects.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
-}
-function saveProject(){
-  const name=document.getElementById('p-name').value.trim();
-  if(!name){showToast('プロジェクト名は必須','var(--danger)');return;}
-  const projects=DB.projects();
-  projects.push({
-    id:genId('PROJ'),name,
-    description:document.getElementById('p-desc').value.trim(),
-    monetize:document.getElementById('p-monetize').value.trim(),
-    targetAmount:parseInt(document.getElementById('p-target').value)||0,
-    status:document.getElementById('p-status').value,
-    startDate:document.getElementById('p-start').value,
-    note:document.getElementById('p-note').value.trim(),
-    createdAt:new Date().toISOString(),
-  });
-  DB.set('fg_projects',projects);
-  closeModal('modal-project');
-  renderProjects();
-  showToast('プロジェクトを追加しました');
-}
-function renderProjects(){
-  const projects=DB.projects().slice().reverse();
-  const grid=document.getElementById('project-grid');
-  if(!projects.length){
-    grid.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="empty-icon">💡</div>プロジェクトを追加してください</div>`;
-    return;
-  }
-  grid.innerHTML=projects.map(p=>`
-    <div class="project-card" onclick="openProjDetail('${p.id}')">
-      <div class="project-status">${statusBadge(p.status)}</div>
-      <div class="project-name">${p.name}</div>
+  DB.set('fg_sales',sales);ect-name">${p.name}</div>
       ${p.description?`<div class="project-desc">${p.description.slice(0,80)}${p.description.length>80?'...':''}</div>`:''}
       ${p.monetize?`<div class="project-monetize"><strong>💰</strong> ${p.monetize.slice(0,60)}${p.monetize.length>60?'...':''}</div>`:''}
       <div class="project-footer">
@@ -980,132 +785,73 @@ function saveShuushi(){
   showToast('収支を登録しました');
 }
 
-// ===== カレンダー =====
-let calYear=new Date().getFullYear();
-let calMonth=new Date().getMonth()+1;
-function changeCalMonth(d){
-  calMonth+=d;
-  if(calMonth>12){calMonth=1;calYear++;}
-  if(calMonth<1){calMonth=12;calYear--;}
-  renderCalendar();
-}
-function renderCalendar(){
-  document.getElementById('cal-month-label').textContent=`${calYear}年${calMonth}月`;
-  const prefix=`${calYear}-${String(calMonth).padStart(2,'0')}`;
-  const cfs=DB.cashflows().filter(c=>c.date&&c.date.startsWith(prefix));
-  const inc=cfs.filter(c=>c.type==='収入').reduce((s,c)=>s+c.amount,0);
-  const exp=cfs.filter(c=>c.type==='支出').reduce((s,c)=>s+c.amount,0);
-  document.getElementById('cal-stats').innerHTML=`
-    <div class="stat-card"><div class="stat-label">収入</div><div class="stat-value success">${fmtYen(inc)}</div></div>
-    <div class="stat-card"><div class="stat-label">支出</div><div class="stat-value danger">${fmtYen(exp)}</div></div>
-    <div class="stat-card"><div class="stat-label">収支</div><div class="stat-value ${inc-exp>=0?'success':'danger'}">${fmtYen(inc-exp)}</div></div>
-    <div class="stat-card"><div class="stat-label">件数</div><div class="stat-value accent">${cfs.length}件</div></div>
-  `;
-  // Day labels
-  document.getElementById('cal-day-labels').innerHTML=
-    ['日','月','火','水','木','金','土'].map(d=>`<div class="cal-day-label">${d}</div>`).join('');
-  // Cells
-  const firstDay=new Date(calYear,calMonth-1,1).getDay();
-  const daysInMonth=new Date(calYear,calMonth,0).getDate();
-  const today=new Date();
-  const byDate={};
-  cfs.forEach(c=>{
-    const day=parseInt(c.date.split('-')[2]);
-    if(!byDate[day])byDate[day]={inc:0,exp:0};
-    if(c.type==='収入')byDate[day].inc+=c.amount;
-    else byDate[day].exp+=c.amount;
-  });
-  let cells='';
-  for(let i=0;i<firstDay;i++)cells+='<div class="cal-cell empty"></div>';
-  for(let d=1;d<=daysInMonth;d++){
-    const isToday=today.getFullYear()===calYear&&today.getMonth()+1===calMonth&&today.getDate()===d;
-    const data=byDate[d];
-    cells+=`<div class="cal-cell${isToday?' today':''}">
-      <div class="cal-date">${d}</div>
-      ${data&&data.inc?`<div class="cal-income">+${(data.inc/1000).toFixed(0)}k</div>`:''}
-      ${data&&data.exp?`<div class="cal-expense">-${(data.exp/1000).toFixed(0)}k</div>`:''}
-    </div>`;
-  }
-  document.getElementById('cal-grid').innerHTML=cells;
-  renderShuushiList(prefix);
-}
-function renderShuushiList(prefix){
-  const cfs=DB.cashflows().filter(c=>c.date&&c.date.startsWith(prefix)).slice().sort((a,b)=>b.date.localeCompare(a.date));
-  const tbody=document.getElementById('shuushi-tbody');
-  if(!cfs.length){
-    tbody.innerHTML=`<tr><td colspan="6" style="text-align:center;color:var(--text2);padding:20px;">この月の収支はありません</td></tr>`;
-    return;
-  }
-  tbody.innerHTML=cfs.map(c=>`
-    <tr>
-      <td>${fmtDate(c.date)}</td>
-      <td>${c.type==='収入'?'<span class="badge badge-success">収入</span>':'<span class="badge badge-danger">支出</span>'}</td>
-      <td>${c.category||'-'}</td>
-      <td class="${c.type==='収入'?'profit-pos':'profit-neg'}">${c.type==='収入'?'+':'-'}${fmtYen(c.amount)}</td>
-      <td style="font-size:12px;color:var(--text2);max-width:150px;overflow:hidden;text-overflow:ellipsis;">${c.description||'-'}</td>
-      <td>${!c.auto?`<button class="btn btn-secondary btn-sm" onclick="deleteCashflow('${c.id}')">削</button>`:'<span style="font-size:10px;color:var(--text2);">自動</span>'}</td>
-    </tr>
-  `).join('');
-}
-function deleteCashflow(id){
-  if(!confirm('削除しますか？'))return;
-  DB.set('fg_cashflows',DB.cashflows().filter(c=>c.id!==id));
-  renderCalendar();
-  updateGoal();
-}
-
-// ===== エクスポート/インポート =====
-function exportData(){
-  const data={
-    stocks:DB.stocks(),
-    sales:DB.sales(),
-    projects:DB.projects(),
-    cashflows:DB.cashflows(),
-    exportedAt:new Date().toISOString(),
-  };
-  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  const d=new Date();
-  a.href=url;
-  a.download=`jigyou_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-  showToast('エクスポートしました');
-}
-function importData(e){
-  const file=e.target.files[0];
-  if(!file)return;
-  const reader=new FileReader();
-  reader.onload=ev=>{
-    try{
-      const data=JSON.parse(ev.target.result);
-      if(!confirm(`データをインポートします。\n現在のデータは上書きされます。\n続けますか？`))return;
-      if(data.stocks)   DB.set('fg_stocks',data.stocks);
-      if(data.sales)    DB.set('fg_sales',data.sales);
-      if(data.projects) DB.set('fg_projects',data.projects);
-      if(data.cashflows)DB.set('fg_cashflows',data.cashflows);
-      renderStock(); renderSummary(); updateGoal();
-      showToast('インポート完了');
-    }catch(err){
-      showToast('JSONファイルが正しくありません','var(--danger)');
-    }
-    e.target.value='';
-  };
-  reader.readAsText(file);
-}
-
-// ===== INIT =====
-document.addEventListener('DOMContentLoaded',()=>{
-  const d=new Date();
-  document.getElementById('todayDate').textContent=`${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
-  // ヘッダーにエクスポート/インポートボタン追加
-  const hdr=document.querySelector('.header');
-  const btnWrap=document.createElement('div');
-  btnWrap.style.cssText='display:flex;gap:6px;';
-  btnWrap.innerHTML=`
-    <button class="btn btn-secondary btn-sm" onclick="exportData()" title="エクスポート">⬆️ 出力</button>
-    <button class="btn btn-secondary btn-sm" onclick="document.getElementById('import-file').click()" title="インポート">⬇️ 取込</button>
+// ===== 固定費・残高 =====
+function saveFixedCost(){
+  const name=document.getElementById('fc-name').value.trim();
+  const amount=parseInt(document.getEle����	�%���������չМ��م�Ք�����4(����������������չХ�͡��Q���Р��G��7��n��B7������ ���مȠ�������Ȥ���ɕ��ɸ��4(������Ё�������ᕑ
+���̠��4(����̹��͠��4(������靕�%��������������չа4(��������鑽�յ��й���������	�%�������������م�Ք�4(�����������͕%�С���յ��й���������	�%��������䜤�م�Ք���İ4(�����4(���͕Р���}��ᕑ}����̜���̤�4(�����յ��й���������	�%�������������م�Ք����4(�����յ��й���������	�%���������չМ��م�Ք����4(��ɕ�����ᕑ
+���1��Р��4(��͡��Q���Р��n떺k��샎
+K����*��_���_�|���4)�4)�չ�ѥ�������ѕ�ᕑ
+��С����4(���͕Р���}��ᕑ}����̜����ᕑ
+���̠�����ѕȡ���������������4(��ɕ�����ᕑ
+���1��Р��4)�4)�չ�ѥ���ɕ�����ᕑ
+���1��Р��4(������Ё�������ᕑ
+���̠��4(������Ё������յ��й���������	�%���������М��4(���������ɕ��ɸ�4(��������̹����Ѡ��4(������������!Q50���؁��屔�ѕ�е�����鍕�ѕ�퍽����مȠ��ѕ��Ȥ홽�еͥ������������������������n떺k���3�f�2ˎW�
+3������o�
+L𽑥����4(����ɕ��ɸ�4(���4(������Ёѽх����̹ɕ�Ս���̱���������������R����̵�����չ��̭�����չа���4(����������!Q50���̹��������4(�����؁�����􉙌�ɽ܈�4(�������������혹���������>;����������������􉉅�����������Ս���̈��>;���������������������􉉅���������������Ȉ��R�����������혹�����������4(��������������屔􉑥�����陱��텱�����ѕ��鍕�ѕ�흅�������4(����������������屔􉙽�еͥ������퍽����مȠ��ѕ��Ȥ���혹�����^�������4(��������������������혹���������>;������ɽ��е��̜��ɽ��е�������혹���������>;�������蜴���홵�e��������չХ�������4(�����������ѽ��������Ѹ��Ѹ������ȁ�Ѹ�ʹ���������􉑕��ѕ�ᕑ
+��Р��혹��������&(���ѽ��4(������������4(����𽑥��4(���������������4(�����؁��屔􉑥�����陱������ѥ�䵍��ѕ������������ݕ�����������������홽�еݕ��������홽�еͥ������퉽ɑ�ȵѽ������ͽ����مȠ����ɑ�Ȥ���ɝ���ѽ�������4(�������������r#����>;�R�������4(�������������������ѽх�������ɽ��е��̜��ɽ��е��������ѽх��������蜝��홵�e���ѽх���������4(����𽑥��4(����4)�4)�չ�ѥ���ٕͅ=������	���������4(������Ёم�����͕%�С���յ��й���������	�%���������չМ��م�Ք�����4(���͕�=������	�������م���4(�����յ��й���������	�%���������ɕ�М��ѕ��
+��ѕ���������/��`耑홵�e���م�����4(��ɕ����	������
+�ɐ���4(��͡��Q���Р��"wr��/��c�
+K�����k�_���_�|���4)�4)�չ�ѥ���������ᕑ
+���̠��4(������Ё�������ᕑ
+���̠��4(��������̹����Ѡ��͡��Q���Р��n떺k���3�f�2ˎW�
+3������o�
+L���مȠ��݅ɹ�������ɕ��ɸ��4(������Ё�ɕ������퍅�e�������M�ɥ������5��Ѡ�����Mх�РȰ�������4(������Ё�������͡����̠��4(������Ё��ɕ������������̹���ѕȡ�������ᕐ������є������є��х���]�Ѡ��ɕ��त�4(�������ɕ��������������Ѡ����4(�������������ɴ���퍅�e������Б퍅�5��ѡ��r#���n떺k�����^������R���#�����g��7�ꛦ��R��_���g�/��}���ɕ��ɸ�4(���4(����̹�����������4(��������Ё���������܁�є����e��ȱ���5��Ѡ��������є���4(��������Ё����5�Ѡ���������䱱������4(��������Ё��ѕM�������ɕ�������M�ɥ�����䤹���Mх�РȰ�������4(������̹��͠����靕�%���
+�����є鑅ѕM�ȱ����阹�������ѕ����蟖n떺k��윱���չ�阹���չб��͍ɥ�ѥ��阹�������ᕐ���Օ���4(�����4(���͕Р���}��͡����̜���̤�4(��ɕ����
+������Ƞ��4(������ѕ������4(��͡��Q���С��n떺k��쀑홍̹����ѡ���؃�
+H�퍅�e������Б퍅�5��ѡ��r#�����R��_���_�}���4)�4)�չ�ѥ�������
+����=ٕȡ啅ȱ���Ѡ��4(������Ё�ɕ�������啅�����M�ɥ������Ѡ�����Mх�РȰ�������4(������Ё�������͡����̠�����ѕȡ�������є������є��ɕ��ଜ����4(������Ё������̹���ѕȡ��������������>;�����ɕ�Ս���̱����̭�����չа���4(������Ё������̹���ѕȡ��������������R��蜤�ɕ�Ս���̱����̭�����չа���4(��ɕ��ɸ�����=������	�����������������4)�4)�չ�ѥ���ɕ����	������
+�ɐ���4(������Ё�ɕ������퍅�e�������M�ɥ������5��Ѡ�����Mх�РȰ�������4(������Ё���ѡ
+������͡����̠�����ѕȡ�������є������є��х���]�Ѡ��ɕ��त�4(������Ё�ɕ�	�����������
+����=ٕȡ���e��ȱ���5��Ѡ��4(������Ё���ѡ%������ѡ
+�̹���ѕȡ��������������>;�����ɕ�Ս���̱����̭�����չа���4(������Ё���ѡ������ѡ
+�̹���ѕȡ��������������R��蜤�ɕ�Ս���̱����̭�����չа���4(������Ё���	��������ɕ�	����������ѡ%������ѡ���4(������Ё��ɐ����յ��й���������	�%�������������ɐ���4(��������ɐ�ɕ��ɸ�4(����ɐ������!Q50��4(�����؁��屔􉙽�еͥ������퍽����مȠ��ѕ��Ȥ홽�еݕ�����������ɝ������ѽ������푥�����陱������ѥ�䵍��ѕ������������ݕ��텱�����ѕ��鍕�ѕ���4(�������������~J����/��c�:����������4(���������ѽ��������Ѹ��Ѹ�͕������䁉Ѹ�ʹ�������������5��������������ᕐ������屔􉙽�еͥ�������������������������"w�r��/��c�����h���ѽ��4(����𽑥��4(�����؁�����􉉅���������܈�4(�������؁�����􉉅�������ѕ���4(���������؁�����􉉅�������ѕ�����������Î
++��+�_��/��`𽑥��4(���������؁�����􉉅�������ѕ��م�Ք����ɕ�	�����������ɽ��е����蜝���屔���ɕ�	�����������������مȠ��ѕ�Ф�蜝���홵�e����ɕ�	��������𽑥��4(������𽑥��4(�������؁�����􉉅��������ɽ܈���,𽑥��4(�������؁�����􉉅�������ѕ���4(���������؁�����􉉅�������ѕ�����������O�r#�>;��𽑥��4(���������؁�����􉉅�������ѕ��م�Ք����屔􉍽����مȠ���Ս���̤����홵�e������ѡ%����𽑥��4(������𽑥��4(�������؁�����􉉅��������ɽ܈��"H𽑥��4(�������؁�����􉉅�������ѕ���4(���������؁�����􉉅�������ѕ�����������O�r#�R���𽑥��4(���������؁�����􉉅�������ѕ��م�Ք����屔􉍽����مȠ�������Ȥ����홵�e������ѡ����𽑥��4(������𽑥��4(����𽑥��4(�����؁�����􉉅������ѽх���4(��������������屔􉙽�еͥ������홽�еݕ�����������퍅�e������Б퍅�5��ѡ��r#�r���/��`������4(��������������屔􉙽�еͥ������홽�еݕ��������퍽����핹�	�����������مȠ���Ս���̤��مȠ�������Ȥ�����홵�e������	��������������4(����𽑥��4(����4)�4(4(�������􁍅�����Ȁ�����4)��Ё���e������܁�є������ձ�e��Ƞ��4)��Ё���5��Ѡ���܁�є������5��Ѡ�����4)�չ�ѥ���������
+��5��Ѡ����4(�����5��Ѡ����4(��������5��Ѡ��ȥ퍅�5��Ѡ��퍅�e��Ȭ���4(��������5��Ѡ�ĥ퍅�5��Ѡ���퍅�e��ȴ���4(��ɕ����
+������Ƞ��4)�4)�չ�ѥ���ɕ����
+������Ƞ��4(�����յ��й���������	�%����������Ѡ���������ѕ��
+��ѕ�����퍅�e������Б퍅�5��ѡ��r!��4(������Ё�ɕ������퍅�e�������M�ɥ������5��Ѡ�����Mх�РȰ�������4(��ɕ����	������
+�ɐ���4(������Ё�������͡����̠�����ѕȡ�������є������є��х���]�Ѡ��ɕ��त�4(������Ё������̹���ѕȡ��������������>;�����ɕ�Ս���̱����̭�����չа���4(������Ё������̹���ѕȡ��������������R��蜤�ɕ�Ս���̱����̭�����չа���4(�����յ��й���������	�%��������х�̜�������!Q50��4(�����؁�������хе��ɐ���؁�������хе��������>;��𽑥���؁�������хеم�Ք��Ս���̈��홵�e��������𽑥��𽑥��4(�����؁�������хе��ɐ���؁�������хе��������R���𽑥���؁�������хеم�Ք������Ȉ��홵�e��������𽑥��𽑥��4(�����؁�������хе��ɐ���؁�������хе��������>;�R�𽑥���؁�������хеم�Ք����������������Ս���̜蝑����ȝ���홵�e������������𽑥��𽑥��4(�����؁�������хе��ɐ���؁�������хе���������ۚV�𽑥���؁�������хеم�Ք������Ј��퍙̹����ѡ����𽑥��𽑥��4(����4(������䁱�����4(�����յ��й���������	�%���������䵱����̜�������!Q50�4(����l��^�����r ����������М���r�����D����rt�t����������؁�����􉍅����䵱���������𽑥��������������4(�����
+����4(������Ё����������܁�є����e��ȱ���5��Ѡ�İĤ�����䠤�4(������Ё����%�5��Ѡ���܁�є����e��ȱ���5��Ѡ��������є���4(������Ёѽ������܁�є���4(������Ё���є����4(����̹�����������4(��������Ё�������͕%�С����є�����Р����l�t��4(�����������ѕm���t����ѕm���t���������������4(������������������>;�������ѕm���t�����������չ��4(������͔����ѕm���t�����������չ��4(�����4(����Ё���������4(����ȡ��Ё��������������������̬���؁�����􉍅�������������𽑥����4(����ȡ��Ё����������%�5��Ѡ퐬���4(��������Ё��Q�����ѽ��九��ձ�e��Ƞ�������e��Ș�ѽ��九��5��Ѡ����������5��Ѡ��ѽ��九���є�������4(��������Ё��ф����ѕm�t�4(��������̬���؁�����􉍅����������Q�������ѽ���蜝��4(�������؁�����􉍅����є�����𽑥��4(�������푅ф����ф�������؁�����􉍅������������쀡��ф�����������ѽ�ᕐ�����𽑥���蜝�4(�������푅ф����ф�������؁�����􉍅�������͔����졑�ф�����������ѽ�ᕐ�����𽑥���蜝�4(����𽑥����4(���4(�����յ��й���������	�%��������ɥ���������!Q50�������4(��ɕ����M���͡�1��С�ɕ����4)�4)�չ�ѥ���ɕ����M���͡�1��С�ɕ����4(������Ё�������͡����̠�����ѕȡ�������є������є��х���]�Ѡ��ɕ��त�ͱ������ͽ�Р�����������є�������
+����ɔ�����є���4(������Ёщ�������յ��й���������	�%���͡��͡��щ��䜤�4(��������̹����Ѡ��4(����щ��乥����!Q50������ѐ���������؈���屔�ѕ�е�����鍕�ѕ�퍽����مȠ��ѕ��Ȥ����������������O���r#���>;�R�����
+'���o�
+L�ѐ�������4(����ɕ��ɸ�4(���4(��щ��乥����!Q50���̹��������4(��������4(�������ѐ��홵��є�����є���ѐ�4(�������ѐ��팹���������>;����������������􉉅�����������Ս���̈��>;���������������������􉉅���������������Ȉ��R������������ѐ�4(�������ѐ��팹��ѕ�����𜴝��ѐ�4(�������ѐ�������팹���������>;������ɽ��е��̜��ɽ��е�������팹���������>;�������蜴���홵�e��������չХ��ѐ�4(�������ѐ���屔􉙽�еͥ������퍽����مȠ��ѕ��Ȥ����ݥ�Ѡ��������ٕə���顥�����ѕ�е�ٕə���镱���ͥ����팹��͍ɥ�ѥ���𜴝��ѐ�4(�������ѐ��셌���Ѽ�����ѽ��������Ѹ��Ѹ�͕������䁉Ѹ�ʹ���������􉑕��ѕ
+�͡���ܠ��팹��������&(���ѽ������������屔􉙽�еͥ������퍽����مȠ��ѕ��Ȥ�����.T���������ѐ�4(��������4(��������������4)�4)�չ�ѥ�������ѕ
+�͡���ܡ����4(�����������ɴ���&+�f��_���g�/��|���ɕ��ɸ�4(���͕Р���}��͡����̜����͡����̠�����ѕȡ���������������4(��ɕ����
+������Ƞ��4(������ѕ������4)�4(4(������������н�����Ѐ�����4)�չ�ѥ����������ф���4(������Ё��ф��4(�����ѽ������ѽ��̠��4(����ͅ�����ͅ��̠��4(�����ɽ��������ɽ����̠��4(������͡���������͡����̠��4(������ᕑ
+��������ᕑ
+���̠��4(�����������	�����������=������	���������4(���������ѕ��鹕܁�є���ѽ%M=M�ɥ�����4(����4(������Ё�������܁	����m)M=8���ɥ����䡑�ф��ձ��ȥt������蝅������ѥ����ͽ�����4(������Ё�ɰ�UI0��ɕ�ѕ=�����UI0�������4(������Ё�����յ��й�ɕ�ѕ�����Р�����4(������Ё����܁�є���4(�����ɕ���ɰ�4(������ݹ�����������|�퐹���ձ�e��Ƞ����M�ɥ��������5��Ѡ���Ĥ����Mх�РȰ�������M�ɥ���������є�������Mх�РȰ�������ͽ���4(������������4(��UI0�ɕٽ��=�����UI0��ɰ��4(��͡��Q���Р��
+��
+��
+�w��#�_���_�|���4)�4)�չ�ѥ����������ф����4(������Ё�������хɝ�й�����l�t�4(�����������ɕ��ɸ�4(������Ёɕ�������܁���I����Ƞ��4(��ɕ���ȹ������������4(��������4(����������Ё��ф�)M=8����͔��عхɝ�йɕ�ձФ�4(���������������ɴ�����
+��
+K�
+��ώw��#�_���g�	q��>��r������
+�����+�n�7�W�
+3���g�	q���k�G���g�/��}���ɕ��ɸ�4(�����������ф��ѽ��̤���������͕Р���}�ѽ��̜���ф��ѽ��̤�4(�����������ф�ͅ��̤����������͕Р���}ͅ��̜���ф�ͅ��̤�4(�����������ф��ɽ����̤�������͕Р���}�ɽ����̜���ф��ɽ����̤�4(�����������ф���͡����̤������͕Р���}��͡����̜���ф���͡����̤�4(�����������ф���ᕑ
+���̤�����͕Р���}��ᕑ}����̜���ф���ᕑ
+���̤�4(�����������ф��������	���������չ����������͕�=������	���������ф��������	��������4(������ɕ����Mѽ�����ɕ����Mյ���䠤�����ѕ������4(������͡��Q���Р��
+��ώw��#��3�����4(�������э����ȥ�4(������͡��Q���Р�)M=;�W�
+��
+����3����_�?��
++���o�
+L���مȠ�������Ȥ���4(�����4(������хɝ�йم�Ք����4(����4(��ɕ���ȹɕ���Q��С������4)�4(4(��������%9%P������4)���յ��й���ٕ��1��ѕ��Ƞ�=5
+��ѕ��1������������4(������Ё����܁�є���4(�����յ��й���������	�%���ѽ����є���ѕ��
+��ѕ�����퐹���ձ�e��Ƞ����퐹���5��Ѡ�������퐹����є�����4(������Ё�������յ��й�Օ��M����ѽȠ�������Ȝ��4(������Ё�ѹ]Ʌ�����յ��й�ɕ�ѕ�����Р���؜��4(���ѹ]Ʌ����屔����Q������������陱��흅�������4(���ѹ]Ʌ�������!Q50��4(�������ѽ��������Ѹ��Ѹ�͕������䁉Ѹ�ʹ����������������ф����ѥѱ��
+��
+��
+�w�� ������<���*l</button>
+    <button class="btn btn-secondary btn-sm" onclick="document.getElementById('import-file').click()" title="インポート">⬇ﻏ 取込</button>
   `;
   hdr.appendChild(btnWrap);
   updateGoal();
