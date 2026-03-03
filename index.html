@@ -301,6 +301,10 @@ select.form-control option{background:var(--surface2);color:var(--text);}
       <input type="number" class="form-control" id="s-target-price" placeholder="0">
     </div>
     <div class="form-group">
+      <label class="form-label">出品URL（ラクマ・メルカリ等）</label>
+      <input type="url" class="form-control" id="s-url" placeholder="https://...">
+    </div>
+    <div class="form-group">
       <label class="form-label">メモ</label>
       <textarea class="form-control" id="s-memo" placeholder="特徴・状態詳細など"></textarea>
     </div>
@@ -665,6 +669,10 @@ select.form-control option{background:var(--surface2);color:var(--text);}
       <input type="number" class="form-control" id="es2-target" placeholder="0">
     </div>
     <div class="form-group">
+      <label class="form-label">出品URL</label>
+      <input type="url" class="form-control" id="es2-url" placeholder="https://...">
+    </div>
+    <div class="form-group">
       <label class="form-label">メモ</label>
       <textarea class="form-control" id="es2-memo"></textarea>
     </div>
@@ -912,6 +920,7 @@ function saveShiire(){
     category:document.getElementById('s-category').value,
     condition:document.getElementById('s-condition').value,
     targetPrice:parseInt(document.getElementById('s-target-price').value)||0,
+    url:document.getElementById('s-url').value.trim(),
     memo:document.getElementById('s-memo').value.trim(),
     status:'在庫',
     createdAt:new Date().toISOString(),
@@ -952,6 +961,7 @@ function renderStock(){
       <td>${fmtDate(s.purchaseDate)}</td>
       <td>${statusBadge(s.status)}</td>
       <td style="display:flex;gap:4px;">
+        ${s.url?`<a href="${s.url}" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none;">🔗</a>`:''}
         ${s.status==='在庫'?`<button class="btn btn-success btn-sm" onclick="quickSell('${s.id}')">売る</button>`:''}
         <button class="btn btn-secondary btn-sm" onclick="openEditStock('${s.id}')">編集</button>
         <button class="btn btn-secondary btn-sm" onclick="deleteStock('${s.id}')">削</button>
@@ -975,6 +985,7 @@ function openEditStock(id){
   document.getElementById('es2-price').value=s.purchasePrice;
   document.getElementById('es2-date').value=s.purchaseDate;
   document.getElementById('es2-target').value=s.targetPrice||'';
+  document.getElementById('es2-url').value=s.url||'';
   document.getElementById('es2-memo').value=s.memo||'';
   const cat=document.getElementById('es2-category');
   for(let i=0;i<cat.options.length;i++){if(cat.options[i].value===s.category){cat.selectedIndex=i;break;}}
@@ -999,6 +1010,7 @@ function saveEditStock(){
     category:document.getElementById('es2-category').value,
     condition:document.getElementById('es2-condition').value,
     targetPrice:parseInt(document.getElementById('es2-target').value)||0,
+    url:document.getElementById('es2-url').value.trim(),
     memo:document.getElementById('es2-memo').value.trim(),
   };
   DB.set('fg_stocks',stocks);
