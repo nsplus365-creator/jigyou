@@ -302,7 +302,10 @@ select.form-control option{background:var(--surface2);color:var(--text);}
     </div>
     <div class="form-group">
       <label class="form-label">出品URL（ラクマ・メルカリ等）</label>
-      <input type="url" class="form-control" id="s-url" placeholder="https://...">
+      <div style="display:flex;gap:6px;">
+        <input type="url" class="form-control" id="s-url" placeholder="https://..." style="flex:1;">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="fetchListingInfo()" id="fetch-btn" style="white-space:nowrap;">読み取り</button>
+      </div>
     </div>
     <div class="form-group">
       <label class="form-label">メモ</label>
@@ -903,6 +906,44 @@ function closeModal(id){
 document.querySelectorAll('.modal-overlay').forEach(o=>{
   o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('active');});
 });
+
+// ===== 出品URL読み取り =====
+async function fetchListingInfo(){
+  const url=document.getElementById('s-url').value.trim();
+  if(!url){showToast('URLを入力してください','var(--warning)');return;}
+  const btn=document.getElementById('fetch-btn');
+  btn.textContent='読取中...';btn.disabled=true;
+  try{
+    const proxy=`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+    const res=await fetch(proxy);
+    const data=await res.json();
+    const html=data.contents||'';
+    const doc=new DOMParser().parseFromString(html,'text/html');
+    const og=p=>doc.querySelector(`meta[property="${p}"]`)?.content||doc.querySelector(`meta[name="${p}"]`)?.content||'';
+    // タイトル（プラットフォーム名を除去）
+    let title=og('og:title')||doc.title||'';
+    title=title.replace(/\s*[-|｜]\s*(メルカリ|ラクマ|Rakuma|Mercari).*/i,'').trim();
+    // 価格（¥表記を探す）
+    const allText=html;
+    const priceMatch=allText.match(/"price"\s*:\s*"?(\d+)"?/)||allText.match(/["']price["']\s*:\s*(\d+)/)||('¥'+(og('og:description')+og('twitter:data1'))).match(/[¥￥]([0-9,]+)/);
+    const price=priceMatch?parseInt((priceMatch[1]||'').replace(/,/g,'')):0;
+    // ブランド
+    const brand=og('brand')||og('product:brand')||'';
+    // 説明
+    let desc=og('og:description')||'';
+    desc=desc.replace(/[¥￥][0-9,]+/,'').replace(/\s+/,' ').trim().slice(0,100);
+    // 反映
+    if(title)document.getElementById('s-name').value=title;
+    if(brand)document.getElementById('s-brand').value=brand;
+    if(price)document.getElementById('s-target-price').value=price;
+    if(desc)document.getElementById('s-memo').value=desc;
+    showToast(title?'読み取り完了':'情報を一部取得しました');
+  }catch(e){
+    showToast('読み取り失敗（URLを確認してください）','var(--danger)');
+  }finally{
+    btn.textContent='読み取り';btn.disabled=false;
+  }
+}
 
 // ===== 古着：仕入れ =====
 function saveShiire(){
