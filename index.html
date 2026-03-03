@@ -574,22 +574,25 @@ select.form-control option{background:var(--surface2);color:var(--text);}
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">プラットフォーム</label>
-        <select class="form-control" id="calc-platform" onchange="calcProfit()">
-          <option value="6">ラクマ（手数料6%）</option>
-          <option value="10">メルカリ（手数料10%）</option>
+        <select class="form-control" id="sim-platform" onchange="calcProfit()">
+          <option value="6">ラクマ 6%（基準）</option>
+          <option value="4.5">ラクマ 4.5%（実績あり）</option>
+          <option value="10">ラクマ 10%（初回/低実績）</option>
+          <option value="10">メルカリ 10%</option>
           <option value="0">手数料なし</option>
         </select>
       </div>
       <div class="form-group">
         <label class="form-label">送料</label>
-        <select class="form-control" id="calc-ship" onchange="calcProfit()">
+        <select class="form-control" id="sim-ship" onchange="calcProfit()">
           <option value="0">送料なし / 着払い</option>
-          <option value="185">ゆうパケット 185円</option>
-          <option value="360">ゆうパケットプラス 360円</option>
-          <option value="520">宅急便コンパクト 520円</option>
-          <option value="700">宅急便60サイズ 700円</option>
-          <option value="800">宅急便80サイズ 800円</option>
-          <option value="1000">宅急便100サイズ 1,000円</option>
+          <option value="215">ゆうパケット 215円</option>
+          <option value="375">ゆうパケットプラス 375円</option>
+          <option value="870">ゆうパック 60サイズ 870円</option>
+          <option value="1040">ゆうパック 80サイズ 1,040円</option>
+          <option value="1200">ゆうパック 100サイズ 1,200円</option>
+          <option value="1450">ゆうパック 120サイズ 1,450円</option>
+          <option value="1700">ゆうパック 140サイズ 1,700円</option>
         </select>
       </div>
     </div>
@@ -965,12 +968,12 @@ document.querySelectorAll('.modal-overlay').forEach(o=>{
 function calcProfit(){
   const buy=parseInt(document.getElementById('calc-buy').value)||0;
   const sell=parseInt(document.getElementById('calc-sell').value)||0;
-  const feeRate=parseInt(document.getElementById('calc-platform').value)||0;
-  const ship=parseInt(document.getElementById('calc-ship').value)||0;
+  const feeRate=parseFloat(document.getElementById('sim-platform').value)||0;
+  const ship=parseInt(document.getElementById('sim-ship').value)||0;
   const el=document.getElementById('calc-result');
   if(!buy||!sell){el.style.display='none';return;}
   el.style.display='block';
-  const fee=Math.floor(sell*feeRate/100);
+  const fee=Math.ceil(sell*feeRate/100);
   const profit=sell-fee-ship-buy;
   const rate=sell>0?Math.round(profit/sell*100):0;
   document.getElementById('cr-fee').textContent=`-${fmtYen(fee)}`;
