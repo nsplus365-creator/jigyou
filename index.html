@@ -166,6 +166,7 @@ select.form-control option{background:var(--surface2);color:var(--text);}
       <div class="action-row">
         <button class="btn btn-primary" onclick="openModal('modal-shiire')">＋ 仕入れ登録</button>
         <button class="btn btn-success" onclick="openModal('modal-hanbai')">💴 販売登録</button>
+        <button class="btn btn-secondary" onclick="openModal('modal-calc')">🧮 利益計算</button>
       </div>
       <div class="filter-row">
         <input type="text" class="form-control" id="filter-stock" placeholder="商品名・ブランドで検索" oninput="renderStock()">
@@ -553,6 +554,59 @@ select.form-control option{background:var(--surface2);color:var(--text);}
   </div>
 </div>
 
+<!-- ===== MODAL: 利益計算 ===== -->
+<div class="modal-overlay" id="modal-calc">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">🧮 利益計算</span>
+      <button class="modal-close" onclick="closeModal('modal-calc')">✕</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">仕入れ価格</label>
+        <input type="number" class="form-control" id="calc-buy" placeholder="0" oninput="calcProfit()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">販売予定価格</label>
+        <input type="number" class="form-control" id="calc-sell" placeholder="0" oninput="calcProfit()">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">プラットフォーム</label>
+        <select class="form-control" id="calc-platform" onchange="calcProfit()">
+          <option value="6">ラクマ（手数料6%）</option>
+          <option value="10">メルカリ（手数料10%）</option>
+          <option value="0">手数料なし</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">送料</label>
+        <select class="form-control" id="calc-ship" onchange="calcProfit()">
+          <option value="0">送料なし / 着払い</option>
+          <option value="185">ゆうパケット 185円</option>
+          <option value="360">ゆうパケットプラス 360円</option>
+          <option value="520">宅急便コンパクト 520円</option>
+          <option value="700">宅急便60サイズ 700円</option>
+          <option value="800">宅急便80サイズ 800円</option>
+          <option value="1000">宅急便100サイズ 1,000円</option>
+        </select>
+      </div>
+    </div>
+    <div id="calc-result" style="background:var(--surface2);border-radius:8px;padding:16px;margin-top:8px;display:none;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div><div style="font-size:11px;color:var(--text2);">手数料</div><div id="cr-fee" style="font-size:15px;font-weight:700;color:var(--danger);"></div></div>
+        <div><div style="font-size:11px;color:var(--text2);">送料</div><div id="cr-ship" style="font-size:15px;font-weight:700;color:var(--danger);"></div></div>
+        <div><div style="font-size:11px;color:var(--text2);">利益</div><div id="cr-profit" style="font-size:18px;font-weight:700;"></div></div>
+        <div><div style="font-size:11px;color:var(--text2);">利益率</div><div id="cr-rate" style="font-size:18px;font-weight:700;"></div></div>
+      </div>
+    </div>
+    <div class="form-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-calc')">閉じる</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== MODAL: 日別収支 ===== -->
 <div class="modal-overlay" id="modal-day">
   <div class="modal">
@@ -907,6 +961,28 @@ document.querySelectorAll('.modal-overlay').forEach(o=>{
   o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('active');});
 });
 
+// ===== 利益計算 =====
+function calcProfit(){
+  const buy=parseInt(document.getElementById('calc-buy').value)||0;
+  const sell=parseInt(document.getElementById('calc-sell').value)||0;
+  const feeRate=parseInt(document.getElementById('calc-platform').value)||0;
+  const ship=parseInt(document.getElementById('calc-ship').value)||0;
+  const el=document.getElementById('calc-result');
+  if(!buy||!sell){el.style.display='none';return;}
+  el.style.display='block';
+  const fee=Math.floor(sell*feeRate/100);
+  const profit=sell-fee-ship-buy;
+  const rate=sell>0?Math.round(profit/sell*100):0;
+  document.getElementById('cr-fee').textContent=`-${fmtYen(fee)}`;
+  document.getElementById('cr-ship').textContent=`-${fmtYen(ship)}`;
+  const pc=document.getElementById('cr-profit');
+  pc.textContent=(profit>=0?'+':'')+fmtYen(profit);
+  pc.style.color=profit>=0?'var(--success)':'var(--danger)';
+  const rc=document.getElementById('cr-rate');
+  rc.textContent=rate+'%';
+  rc.style.color=rate>=20?'var(--success)':rate>=10?'var(--warning)':'var(--danger)';
+}
+
 // ===== 出品URL読み取り =====
 async function fetchListingInfo(){
   const url=document.getElementById('s-url').value.trim();
@@ -935,7 +1011,6 @@ async function fetchListingInfo(){
     if(title)document.getElementById('s-name').value=title;
     if(brand)document.getElementById('s-brand').value=brand;
     if(price)document.getElementById('s-target-price').value=price;
-    if(desc)document.getElementById('s-memo').value=desc;
     showToast(title?'読み取り完了':'情報を一部取得しました');
   }catch(e){
     showToast('読み取り失敗（URLを確認してください）','var(--danger)');
