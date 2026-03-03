@@ -546,6 +546,21 @@ select.form-control option{background:var(--surface2);color:var(--text);}
   </div>
 </div>
 
+<!-- ===== MODAL: 日別収支 ===== -->
+<div class="modal-overlay" id="modal-day">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-day-title">📅 日別収支</span>
+      <button class="modal-close" onclick="closeModal('modal-day')">✕</button>
+    </div>
+    <div id="modal-day-list"></div>
+    <div class="form-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-day')">閉じる</button>
+      <button class="btn btn-primary btn-sm" onclick="addFromDay()">＋ 追加</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== MODAL: 固定費管理 ===== -->
 <div class="modal-overlay" id="modal-fixed">
   <div class="modal">
@@ -1563,7 +1578,7 @@ function renderCalendar(){
   for(let d=1;d<=daysInMonth;d++){
     const isToday=today.getFullYear()===calYear&&today.getMonth()+1===calMonth&&today.getDate()===d;
     const data=byDate[d];
-    cells+=`<div class="cal-cell${isToday?' today':''}">
+    cells+=`<div class="cal-cell${isToday?' today':''}${data?' has-data':''}" onclick="openDayModal(${d})" style="${data?'cursor:pointer;':''}">
       <div class="cal-date">${d}</div>
       ${data&&data.inc?`<div class="cal-income">+${(data.inc/1000).toFixed(0)}k</div>`:''}
       ${data&&data.exp?`<div class="cal-expense">-${(data.exp/1000).toFixed(0)}k</div>`:''}
@@ -1595,6 +1610,56 @@ function deleteCashflow(id){
   DB.set('fg_cashflows',DB.cashflows().filter(c=>c.id!==id));
   renderCalendar();
   updateGoal();
+}
+let _dayModalDay=null;
+function openDayModal(day){
+  _dayModalDay=day;
+  const dateStr=`${calYear}-${String(calMonth).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+  document.getElementById('modal-day-title').textContent=`📅 ${calYear}/${calMonth}/${day}`;
+  renderDayModalList(dateStr);
+  document.getElementById('modal-day').classList.add('active');
+}
+function renderDayModalList(dateStr){
+  const cfs=DB.cashflows().filter(c=>c.date===dateStr);
+  const el=document.getElementById('modal-day-list');
+  if(!cfs.length){
+    el.innerHTML='<div style="text-align:center;color:var(--text2);padding:16px;font-size:13px;">この日の収支はありません</div>';
+    return;
+  }
+  el.innerHTML=cfs.map(c=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
+      <div>
+        ${c.type==='収入'?'<span class="badge badge-success">収入</span>':'<span class="badge badge-danger">支出</span>'}
+        <span style="font-size:13px;margin-left:6px;">${c.description||c.category||'-'}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="${c.type==='収入'?'profit-pos':'profit-neg'}">${c.type==='収入'?'+':'-'}${fmtYen(c.amount)}</span>
+        ${!c.auto?`<button class="btn btn-secondary btn-sm" onclick="editCashflowFromDay('${c.id}')">編</button><button class="btn btn-danger btn-sm" onclick="deleteCashflowFromDay('${c.id}')">削</button>`:'<span style="font-size:10px;color:var(--text2);">自動</span>'}
+      </div>
+    </div>
+  `).join('');
+}
+function editCashflowFromDay(id){
+  closeModal('modal-day');
+  editCashflow(id);
+}
+function deleteCashflowFromDay(id){
+  if(!confirm('削除しますか？'))return;
+  DB.set('fg_cashflows',DB.cashflows().filter(c=>c.id!==id));
+  renderCalendar();
+  updateGoal();
+  if(_dayModalDay){
+    const dateStr=`${calYear}-${String(calMonth).padStart(2,'0')}-${String(_dayModalDay).padStart(2,'0')}`;
+    renderDayModalList(dateStr);
+  }
+}
+function addFromDay(){
+  closeModal('modal-day');
+  if(_dayModalDay){
+    const dateStr=`${calYear}-${String(calMonth).padStart(2,'0')}-${String(_dayModalDay).padStart(2,'0')}`;
+    openModal('modal-shuushi');
+    document.getElementById('cs-date').value=dateStr;
+  }
 }
 
 // ===== エクスポート/インポート =====
