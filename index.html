@@ -868,6 +868,14 @@ function closeModal(id){
     const btn=document.querySelector('#modal-fixed .btn-primary');
     if(btn)btn.textContent='追加';
   }
+  if(id==='modal-shuushi'){
+    const d=document.getElementById('cs-date');
+    if(d)delete d.dataset.editId;
+    const t=document.querySelector('#modal-shuushi .modal-title');
+    if(t)t.textContent='＋ 収支追加';
+    const btn=document.querySelector('#modal-shuushi .btn-primary');
+    if(btn)btn.textContent='登録';
+  }
 }
 document.querySelectorAll('.modal-overlay').forEach(o=>{
   o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('active');});
@@ -1327,10 +1335,34 @@ function saveFukuShuushi(){
 }
 
 // ===== 総合収支 =====
+function editCashflow(id){
+  const c=DB.cashflows().find(f=>f.id===id);
+  if(!c)return;
+  document.getElementById('cs-type').value=c.type;
+  document.getElementById('cs-category').value=c.category||'その他';
+  document.getElementById('cs-date').value=c.date;
+  document.getElementById('cs-amount').value=c.amount;
+  document.getElementById('cs-desc').value=c.description||'';
+  document.getElementById('cs-memo').value=c.memo||'';
+  document.getElementById('cs-date').dataset.editId=id;
+  document.querySelector('#modal-shuushi .modal-title').textContent='✏️ 収支編集';
+  document.querySelector('#modal-shuushi .btn-primary').textContent='更新';
+  document.getElementById('modal-shuushi').classList.add('active');
+}
 function saveShuushi(){
   const amount=parseInt(document.getElementById('cs-amount').value)||0;
   const date=document.getElementById('cs-date').value;
   if(!amount||!date){showToast('金額・日付は必須','var(--danger)');return;}
+  const editId=document.getElementById('cs-date').dataset.editId||'';
+  if(editId){
+    const cfs=DB.cashflows().map(c=>c.id===editId?{...c,date,type:document.getElementById('cs-type').value,category:document.getElementById('cs-category').value,amount,description:document.getElementById('cs-desc').value.trim(),memo:document.getElementById('cs-memo').value.trim()}:c);
+    DB.set('fg_cashflows',cfs);
+    closeModal('modal-shuushi');
+    renderCalendar();
+    updateGoal();
+    showToast('収支を更新しました');
+    return;
+  }
   const cfs=DB.cashflows();
   cfs.push({
     id:genId('CF'),date,
@@ -1554,7 +1586,7 @@ function renderShuushiList(prefix){
       <td>${c.category||'-'}</td>
       <td class="${c.type==='収入'?'profit-pos':'profit-neg'}">${c.type==='収入'?'+':'-'}${fmtYen(c.amount)}</td>
       <td style="font-size:12px;color:var(--text2);max-width:150px;overflow:hidden;text-overflow:ellipsis;">${c.description||'-'}</td>
-      <td>${!c.auto?`<button class="btn btn-secondary btn-sm" onclick="deleteCashflow('${c.id}')">削</button>`:'<span style="font-size:10px;color:var(--text2);">自動</span>'}</td>
+      <td>${!c.auto?`<button class="btn btn-secondary btn-sm" onclick="editCashflow('${c.id}')" style="margin-right:4px;">編</button><button class="btn btn-danger btn-sm" onclick="deleteCashflow('${c.id}')">削</button>`:'<span style="font-size:10px;color:var(--text2);">自動</span>'}</td>
     </tr>
   `).join('');
 }
