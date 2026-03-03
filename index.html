@@ -862,6 +862,12 @@ function openModal(id){
 function closeModal(id){
   document.getElementById(id).classList.remove('active');
   document.querySelectorAll(`#${id} input:not([readonly]),#${id} textarea`).forEach(el=>el.value='');
+  if(id==='modal-fixed'){
+    const n=document.getElementById('fc-name');
+    if(n)delete n.dataset.editId;
+    const btn=document.querySelector('#modal-fixed .btn-primary');
+    if(btn)btn.textContent='追加';
+  }
 }
 document.querySelectorAll('.modal-overlay').forEach(o=>{
   o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('active');});
@@ -1342,10 +1348,35 @@ function saveShuushi(){
 }
 
 // ===== 固定費・残高 =====
+function editFixedCost(id){
+  const fc=DB.fixedCosts().find(f=>f.id===id);
+  if(!fc)return;
+  document.getElementById('fc-name').value=fc.name;
+  document.getElementById('fc-amount').value=fc.amount;
+  document.getElementById('fc-type').value=fc.type;
+  document.getElementById('fc-day').value=fc.day;
+  document.getElementById('fc-name').dataset.editId=id;
+  const btn=document.querySelector('#modal-fixed .btn-primary');
+  if(btn)btn.textContent='更新';
+  document.getElementById('fc-name').focus();
+}
 function saveFixedCost(){
   const name=document.getElementById('fc-name').value.trim();
   const amount=parseInt(document.getElementById('fc-amount').value)||0;
   if(!name||!amount){showToast('項目名・金額は必須','var(--danger)');return;}
+  const editId=document.getElementById('fc-name').dataset.editId||'';
+  if(editId){
+    const fcs=DB.fixedCosts().map(f=>f.id===editId?{...f,name,amount,type:document.getElementById('fc-type').value,day:parseInt(document.getElementById('fc-day').value)||1}:f);
+    DB.set('fg_fixed_costs',fcs);
+    delete document.getElementById('fc-name').dataset.editId;
+    const btn=document.querySelector('#modal-fixed .btn-primary');
+    if(btn)btn.textContent='追加';
+    document.getElementById('fc-name').value='';
+    document.getElementById('fc-amount').value='';
+    renderFixedCostList();
+    showToast('固定費を更新しました');
+    return;
+  }
   const fcs=DB.fixedCosts();
   fcs.push({
     id:genId('FC'),name,amount,
@@ -1377,6 +1408,7 @@ function renderFixedCostList(){
       <span style="display:flex;align-items:center;gap:8px;">
         <span style="font-size:12px;color:var(--text2);">${f.day}日</span>
         <span class="${f.type==='収入'?'profit-pos':'profit-neg'}">${f.type==='収入'?'+':'-'}${fmtYen(f.amount)}</span>
+        <button class="btn btn-secondary btn-sm" onclick="editFixedCost('${f.id}')">編</button>
         <button class="btn btn-danger btn-sm" onclick="deleteFixedCost('${f.id}')">削</button>
       </span>
     </div>
