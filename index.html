@@ -914,10 +914,9 @@ async function fetchListingInfo(){
   const btn=document.getElementById('fetch-btn');
   btn.textContent='読取中...';btn.disabled=true;
   try{
-    const proxy=`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+    const proxy=`https://corsproxy.io/?${encodeURIComponent(url)}`;
     const res=await fetch(proxy);
-    const data=await res.json();
-    const html=data.contents||'';
+    const html=await res.text();
     const doc=new DOMParser().parseFromString(html,'text/html');
     const og=p=>doc.querySelector(`meta[property="${p}"]`)?.content||doc.querySelector(`meta[name="${p}"]`)?.content||'';
     // タイトル（プラットフォーム名を除去）
